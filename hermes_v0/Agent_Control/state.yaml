@@ -1,0 +1,19 @@
+project:
+  status: READY
+  current_task: B06
+  active_agent: QA-001
+  attempt: 3
+  max_attempts: 3
+agents:
+  ARCH-001:
+    status: APPROVED
+  DATA-001:
+    status: READY
+  BUILD-001:
+    status: HANDOFF_READY
+  QA-001:
+    status: ACTIVE
+  EVID-001:
+    status: PENDING
+  SAFE-001:
+    status: PENDING

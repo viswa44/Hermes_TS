@@ -1,0 +1,6 @@
+# Dedicated Hermes V0 runtime dependencies.  Keep these separate from OpenAlgo
+# because Hermes is a read-only research collector with its own persistence path.
+aiohttp>=3.9,<4
+asyncpg>=0.29,<1
+httpx>=0.27,<1
+PyYAML>=6,<7

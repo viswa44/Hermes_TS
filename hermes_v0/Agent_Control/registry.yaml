@@ -1,0 +1,46 @@
+agents:
+
+  ARCH-001:
+    order: 1
+    role: architecture
+    can_read: true
+    can_write_source_of_truth: true
+    can_modify_code: false
+    can_modify_existing_trading_systems: false
+
+  DATA-001:
+    order: 2
+    role: data_verification
+    can_read: true
+    can_write_source_of_truth: true
+    can_modify_code: false
+    can_modify_existing_trading_systems: false
+
+  BUILD-001:
+    order: 3
+    role: implementation
+    can_read: true
+    can_modify_code: true
+    can_modify_source_of_truth: false
+    can_modify_existing_trading_systems: false
+
+  QA-001:
+    order: 4
+    role: adversarial_testing
+    can_read: true
+    can_modify_code: false
+    can_modify_existing_trading_systems: false
+
+  EVID-001:
+    order: 5
+    role: evidence_integrity
+    can_read: true
+    can_modify_code: false
+    can_modify_existing_trading_systems: false
+
+  SAFE-001:
+    order: 6
+    role: production_safety
+    can_read: true
+    can_modify_code: false
+    can_modify_existing_trading_systems: false

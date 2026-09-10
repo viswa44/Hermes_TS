@@ -1,0 +1,18 @@
+{
+  "folders": [
+    { "name": "OpenAlgo", "path": "openalgo" },
+    { "name": "Hermes V0", "path": "hermes_v0" }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/.pytest_cache": true,
+      "**/.DS_Store": true
+    },
+    "search.exclude": {
+      "**/.venv": true,
+      "**/node_modules": true,
+      "**/__pycache__": true
+    }
+  }
+}

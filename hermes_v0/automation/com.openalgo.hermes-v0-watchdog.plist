@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>Label</key><string>com.openalgo.hermes-v0-watchdog</string>
+    <key>ProgramArguments</key><array>
+        <string>/Users/viswatej/Desktop/openalgo/hermes_v0/.venv/bin/python</string>
+        <string>-m</string><string>hermes_v0.automation.watchdog</string>
+    </array>
+    <key>WorkingDirectory</key><string>/Users/viswatej/Desktop/openalgo</string>
+    <key>EnvironmentVariables</key><dict>
+        <key>PYTHONPATH</key><string>/Users/viswatej/Desktop/openalgo</string>
+        <key>HERMES_DB_HOST</key><string>127.0.0.1</string>
+        <key>HERMES_DB_USER</key><string>postgres</string>
+        <key>HERMES_DB_NAME</key><string>hermes</string>
+    </dict>
+    <key>StartInterval</key><integer>20</integer>
+    <key>RunAtLoad</key><true/>
+    <key>KeepAlive</key><false/>
+    <key>ProcessType</key><string>Background</string>
+    <key>StandardOutPath</key><string>/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B05/watchdog.out.log</string>
+    <key>StandardErrorPath</key><string>/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B05/watchdog.err.log</string>
+</dict></plist>

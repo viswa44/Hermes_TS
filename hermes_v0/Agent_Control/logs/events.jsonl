@@ -1,0 +1,47 @@
+{"agent_id": "BUILD-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B01/BUILD-001/B01_attempt_1.md", "task_id": "B01", "time": "2026-08-18T02:57:55+00:00"}
+{"agent_id": "BUILD-001", "attempt": 1, "event": "HANDOFF_READY", "report": "hermes_v0/Agent_Control/logs/B01/BUILD-001/B01_attempt_1.md", "task_id": "B01", "time": "2026-08-18T02:58:38+00:00"}
+{"agent_id": "QA-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B01/QA-001/Q01_attempt_1.md", "task_id": "B01", "time": "2026-08-18T02:58:38+00:00"}
+{"agent_id": "QA-001", "attempt": 1, "event": "PASS", "report": "Agent_Control/logs/B01/QA-001/Q01_attempt_1.md", "task_id": "B01", "time": "2026-08-18T15:19:18+00:00"}
+{"event": "READY", "reason": "B01 QA PASS", "task_id": "B02", "time": "2026-08-18T15:19:18+00:00"}
+{"agent_id": "BUILD-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B02/BUILD-001/B02_attempt_1.md", "task_id": "B02", "time": "2026-08-18T15:19:18+00:00"}
+{"agent_id": "BUILD-001", "attempt": 1, "event": "HANDOFF_READY", "report": "Agent_Control/logs/B02/BUILD-001/B02_attempt_1.md", "task_id": "B02", "time": "2026-08-18T15:21:40+00:00"}
+{"agent_id": "QA-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B02/QA-001/Q02_attempt_1.md", "task_id": "B02", "time": "2026-08-18T15:21:40+00:00"}
+{"agent_id": "QA-001", "attempt": 1, "event": "BLOCKED", "report": "Agent_Control/logs/B02/QA-001/Q02_attempt_1.md", "task_id": "B02", "time": "2026-08-28T16:59:51+00:00"}
+{"attempt": 2, "event": "REWORK", "reason": "explicit rework request", "task_id": "B02", "time": "2026-08-28T17:22:21+00:00"}
+{"agent_id": "BUILD-001", "attempt": 2, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B02/BUILD-001/B02_attempt_2.md", "task_id": "B02", "time": "2026-08-28T17:22:21+00:00"}
+{"agent_id": "BUILD-001", "attempt": 2, "event": "HANDOFF_READY", "report": "Agent_Control/logs/B02/BUILD-001/B02_attempt_2.md", "task_id": "B02", "time": "2026-08-28T17:22:37+00:00"}
+{"agent_id": "QA-001", "attempt": 2, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B02/QA-001/Q02_attempt_2.md", "task_id": "B02", "time": "2026-08-28T17:22:37+00:00"}
+{"agent_id": "QA-001", "attempt": 2, "event": "PASS", "report": "Agent_Control/logs/B02/QA-001/Q02_attempt_2.md", "task_id": "B02", "time": "2026-08-28T17:23:23+00:00"}
+{"event": "READY", "reason": "B02 QA PASS", "task_id": "B03", "time": "2026-08-28T17:23:23+00:00"}
+{"agent_id": "BUILD-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B03/BUILD-001/B03_attempt_1.md", "task_id": "B03", "time": "2026-08-28T17:23:23+00:00"}
+{"event": "DEFERRED", "reason": "explicit deferral request", "task_id": "B03", "time": "2026-08-29T07:22:40+00:00"}
+{"event": "READY", "reason": "B03 deferred", "task_id": "B04", "time": "2026-08-29T07:22:40+00:00"}
+{"agent_id": "BUILD-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B04/BUILD-001/B04_attempt_1.md", "task_id": "B04", "time": "2026-08-29T07:22:40+00:00"}
+{"event": "DEFERRED", "reason": "explicit resume of B03", "task_id": "B04", "time": "2026-09-07T07:15:40+00:00"}
+{"event": "RESUMED", "reason": "explicit priority over B04", "task_id": "B03", "time": "2026-09-07T07:15:40+00:00"}
+{"agent_id": "BUILD-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B03/BUILD-001/B03_B03B_attempt_1.md", "task_id": "B03", "time": "2026-09-07T07:15:40+00:00"}
+{"agent_id": "BUILD-001", "attempt": 1, "event": "HANDOFF_READY", "report": "Agent_Control/logs/B03/BUILD-001/B03_B03B_attempt_1.md", "task_id": "B03", "time": "2026-09-07T07:19:38+00:00"}
+{"agent_id": "QA-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B03/QA-001/Q03_B03B_attempt_1.md", "task_id": "B03", "time": "2026-09-07T07:19:38+00:00"}
+{"agent_id": "QA-001", "attempt": 1, "event": "PASS", "report": "Agent_Control/logs/B03/QA-001/Q03_B03B_attempt_1.md", "task_id": "B03", "time": "2026-09-07T07:20:43+00:00"}
+{"event": "READY", "reason": "B03 QA PASS", "task_id": "B04", "time": "2026-09-07T07:20:43+00:00"}
+{"agent_id": "BUILD-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B04/BUILD-001/B04_attempt_1.md", "task_id": "B04", "time": "2026-09-07T07:20:43+00:00"}
+{"agent_id": "BUILD-001", "attempt": 1, "event": "HANDOFF_READY", "report": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B04/BUILD-001/B04_attempt_1.md", "task_id": "B04", "time": "2026-09-07T08:28:44+00:00"}
+{"agent_id": "QA-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B04/QA-001/Q04_attempt_1.md", "task_id": "B04", "time": "2026-09-07T08:28:44+00:00"}
+{"agent_id": "QA-001", "attempt": 1, "event": "PASS", "report": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B04/QA-001/Q04_attempt_1.md", "task_id": "B04", "time": "2026-09-07T08:34:44+00:00"}
+{"event": "READY", "reason": "B04 QA PASS", "task_id": "B05", "time": "2026-09-07T08:34:44+00:00"}
+{"agent_id": "BUILD-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B05/BUILD-001/B05_attempt_1.md", "task_id": "B05", "time": "2026-09-07T08:34:44+00:00"}
+{"agent_id": "BUILD-001", "attempt": 1, "event": "HANDOFF_READY", "report": "Agent_Control/logs/B05/BUILD-001/B05_attempt_1.md", "task_id": "B05", "time": "2026-09-07T09:06:55+00:00"}
+{"agent_id": "QA-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B05/QA-001/Q05_attempt_1.md", "task_id": "B05", "time": "2026-09-07T09:06:55+00:00"}
+{"agent_id": "QA-001", "attempt": 1, "event": "PASS", "report": "Agent_Control/logs/B05/QA-001/Q05_attempt_1.md", "task_id": "B05", "time": "2026-09-07T09:11:25+00:00"}
+{"event": "READY", "reason": "B05 QA PASS", "task_id": "B06", "time": "2026-09-07T09:11:25+00:00"}
+{"agent_id": "BUILD-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B06/BUILD-001/B06_attempt_1.md", "task_id": "B06", "time": "2026-09-07T09:11:25+00:00"}
+{"agent_id": "BUILD-001", "attempt": 1, "event": "HANDOFF_READY", "report": "Agent_Control/logs/B06/BUILD-001/B06_attempt_1.md", "task_id": "B06", "time": "2026-09-07T09:25:25+00:00"}
+{"agent_id": "QA-001", "attempt": 1, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B06/QA-001/Q06_attempt_1.md", "task_id": "B06", "time": "2026-09-07T09:25:25+00:00"}
+{"agent_id": "QA-001", "attempt": 1, "event": "FAIL", "report": "Agent_Control/logs/B06/QA-001/Q06_attempt_1.md", "task_id": "B06", "time": "2026-09-08T03:51:39+00:00"}
+{"agent_id": "BUILD-001", "attempt": 2, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B06/BUILD-001/B06_attempt_2.md", "task_id": "B06", "time": "2026-09-08T03:51:39+00:00"}
+{"agent_id": "BUILD-001", "attempt": 2, "event": "HANDOFF_READY", "report": "Agent_Control/logs/B06/BUILD-001/B06_attempt_2.md", "task_id": "B06", "time": "2026-09-08T04:02:06+00:00"}
+{"agent_id": "QA-001", "attempt": 2, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B06/QA-001/Q06_attempt_2.md", "task_id": "B06", "time": "2026-09-08T04:02:06+00:00"}
+{"agent_id": "QA-001", "attempt": 2, "event": "FAIL", "report": "Agent_Control/logs/B06/QA-001/Q06_attempt_2.md", "task_id": "B06", "time": "2026-09-08T13:43:46+00:00"}
+{"agent_id": "BUILD-001", "attempt": 3, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B06/BUILD-001/B06_attempt_3.md", "task_id": "B06", "time": "2026-09-08T13:43:46+00:00"}
+{"agent_id": "BUILD-001", "attempt": 3, "event": "HANDOFF_READY", "report": "Agent_Control/logs/B06/BUILD-001/B06_attempt_3.md", "task_id": "B06", "time": "2026-09-09T03:24:12+00:00"}
+{"agent_id": "QA-001", "attempt": 3, "event": "START", "handoff": "/Users/viswatej/Desktop/openalgo/hermes_v0/Agent_Control/logs/B06/QA-001/Q06_attempt_3.md", "task_id": "B06", "time": "2026-09-09T03:24:12+00:00"}

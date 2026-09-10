@@ -1,0 +1,1 @@
+Current objective: Design V0 immutable market observation contract.

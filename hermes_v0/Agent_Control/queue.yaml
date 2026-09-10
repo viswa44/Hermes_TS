@@ -1,0 +1,156 @@
+tasks:
+- id: B01
+  name: OpenAlgo connectivity
+  requirement: Implement the bounded Hermes V0 OpenAlgo connectivity check.
+  build_agent: BUILD-001
+  qa_agent: QA-001
+  qa_task: Q01
+  status: APPROVED
+  max_attempts: 3
+- id: B02
+  name: Configurable index fetch
+  requirement: Implement the approved configurable-index fetch task.
+  build_agent: BUILD-001
+  qa_agent: QA-001
+  qa_task: Q02
+  status: APPROVED
+  max_attempts: 3
+- id: B03
+  name: Live NIFTY capture and scheduler verification
+  handoff_phase: B03B
+  requirement: 'B03B: B03A has passed off-market. During an open NSE session, make
+    exactly 20 clock-aligned, read-only OpenAlgo NIFTY/NSE_INDEX quote requests. Record
+    normalized observations and local scheduled/request/response timestamps in a new
+    append-only evidence file; reject non-positive LTP; count failures; update a localhost
+    dashboard on every cycle. Do not invoke orders, positions, account APIs, WebSocket
+    order feeds, or any OpenAlgo write endpoint. Approve only if all 20 cycles succeed,
+    have no missed intervals, and dashboard updates equal 20.'
+  build_agent: BUILD-001
+  qa_agent: QA-001
+  qa_task: Q03
+  status: APPROVED
+  max_attempts: 3
+- id: B04
+  name: ATM IV and Greeks PostgreSQL collector
+  requirement: Implement a read-only NIFTY ATM CE/PE collector with a configurable
+    5- or 10-second clock-aligned interval. Store raw underlying and option LTP observations
+    append-only in PostgreSQL and store OpenAlgo Black-76 IV/delta/gamma/theta/ vega/rho
+    separately with calculation provenance. Use only OpenAlgo data endpoints; never
+    call orders, positions, account APIs, or order WebSockets. Mark unavailable fields
+    missing rather than zero-filled. Verify the live run and database rows.
+  build_agent: BUILD-001
+  qa_agent: QA-001
+  qa_task: Q04
+  status: APPROVED
+  max_attempts: 3
+- id: B05
+  name: Weekday option-metrics automation
+  requirement: Install and verify a macOS per-user LaunchAgent that starts the approved
+    read-only NIFTY ATM CE/PE IV/LTP/Greeks PostgreSQL collector Monday through Friday
+    at 09:15 IST. The collector must stop at its existing 15:30 market close, retrieve
+    its OpenAlgo API key only from the user's Keychain, keep credentials out of files
+    and logs, and retain a checkable local runtime status. Do not call any OpenAlgo
+    order, position, account, or WebSocket endpoint.
+  build_agent: BUILD-001
+  qa_agent: QA-001
+  qa_task: Q05
+  status: APPROVED
+  max_attempts: 3
+- id: B06
+  name: Integrity-first NIFTY observations and collection recovery
+  requirement: 'Owner scope revision 2026-09-08: Data loss is acceptable; wrong or
+    misleading data is not. Preserve raw OI only as observed, reject invalid or conflicting
+    values, preserve NULL and unverified freshness, and never invent source timestamps
+    or backfill live observations. Implement raw-first durable capture, bounded source/database
+    recovery, idempotent replay and quarantine, row-freshness monitoring, local alerts,
+    bounded single-collector restart, session-safe shutdown and separate historical
+    backfill. No OpenAlgo changes or order, position, account, or WebSocket endpoints.
+    Test failures adversarially; record gaps and provenance explicitly. Live claims
+    require live evidence.'
+  build_agent: BUILD-001
+  qa_agent: QA-001
+  qa_task: Q06
+  status: REWORK
+  max_attempts: 3
+- id: B07
+  name: Controlled build task B07
+  requirement: Implement the approved scope for B07.
+  build_agent: BUILD-001
+  qa_agent: QA-001
+  qa_task: Q07
+  status: PENDING
+  max_attempts: 3
+- id: B08
+  name: Controlled build task B08
+  requirement: Implement the approved scope for B08.
+  build_agent: BUILD-001
+  qa_agent: QA-001
+  qa_task: Q08
+  status: PENDING
+  max_attempts: 3
+- id: B09
+  name: Controlled build task B09
+  requirement: Implement the approved scope for B09.
+  build_agent: BUILD-001
+  qa_agent: QA-001
+  qa_task: Q09
+  status: PENDING
+  max_attempts: 3
+- id: B10
+  name: Controlled build task B10
+  requirement: Implement the approved scope for B10.
+  build_agent: BUILD-001
+  qa_agent: QA-001
+  qa_task: Q10
+  status: PENDING
+  max_attempts: 3
+- id: B11
+  name: Controlled build task B11
+  requirement: Implement the approved scope for B11.
+  build_agent: BUILD-001
+  qa_agent: QA-001
+  qa_task: Q11
+  status: PENDING
+  max_attempts: 3
+- id: B12
+  name: Controlled build task B12
+  requirement: Implement the approved scope for B12.
+  build_agent: BUILD-001
+  qa_agent: QA-001
+  qa_task: Q12
+  status: PENDING
+  max_attempts: 3
+- id: B13
+  name: Controlled build task B13
+  requirement: Implement the approved scope for B13.
+  build_agent: BUILD-001
+  qa_agent: QA-001
+  qa_task: Q13
+  status: PENDING
+  max_attempts: 3
+- id: V0-001
+  name: Existing implementation architecture audit
+  status: READY
+  required_agents:
+  - ARCH-001
+- id: V0-002
+  name: Data provider verification
+  status: PENDING
+  required_agents:
+  - ARCH-001
+  - DATA-001
+- id: V0-003
+  name: Data contract
+  status: PENDING
+  required_agents:
+  - ARCH-001
+  - DATA-001
+- id: V0-004
+  name: Database implementation
+  status: PENDING
+  required_agents:
+  - ARCH-001
+  - BUILD-001
+  - QA-001
+  - EVID-001
+  - SAFE-001
