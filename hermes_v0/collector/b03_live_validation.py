@@ -300,6 +300,9 @@ def _default_evidence_path() -> Path:
 
 
 async def _main_async(args: argparse.Namespace) -> int:
+    from market_calendar.run_guarded import check_component
+    if not check_component('collector')['allowed']:
+        return 0
     path = args.evidence_path or _default_evidence_path()
     adapter = OpenAlgoAdapter()
     scheduler = ClockAlignedScheduler(interval_seconds=DEFAULT_INTERVAL_SECONDS)

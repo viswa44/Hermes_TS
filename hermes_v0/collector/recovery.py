@@ -14,6 +14,7 @@ import tempfile
 import time
 
 import httpx
+from market_calendar.run_guarded import check_component
 
 from hermes_v0.collector.adapters.strict_openalgo import StrictOpenAlgo, AuthenticationRequired
 from hermes_v0.collector.integrity import IntegrityError, instant, session_time, IST
@@ -96,6 +97,9 @@ class RecoveryService:
     async def database_worker(self):
         failures = 0
         while not self.stopping.is_set():
+            if not check_component('collector', enforce_time=False, record=False)['allowed']:
+                self.state['database_error'] = 'MARKET_GATE_CLOSED'
+                break
             delay = 1
             try:
                 await self.flush_once()
@@ -112,6 +116,9 @@ class RecoveryService:
                 await asyncio.wait_for(self.stopping.wait(), delay)
 
     async def calculate(self, raw):
+        if not check_component('collector', enforce_time=False, record=False)['allowed']:
+            self.state['derived_missing'] += 2
+            return
         try:
             results = await asyncio.wait_for(self.adapter.derived(raw), 2)
             for result in results:
@@ -124,7 +131,42 @@ class RecoveryService:
             self.state["derived_missing"] += 2
             await self.incident("DERIVED_UNAVAILABLE", raw.key)
 
+    async def finish_pending(self, greek_task=None):
+        """Drain durable observations before close, with a bounded shutdown budget."""
+        now = datetime.now(timezone.utc)
+        if not check_component('collector', now=now, enforce_time=False, record=False)['allowed']:
+            self.state['shutdown_flush'] = 'DEFERRED_MARKET_GATE'
+            return
+        if not session_time(now):
+            self.state["shutdown_flush"] = "DEFERRED_MARKET_CLOSED"
+            return
+        close = now.astimezone(IST).replace(hour=15, minute=30, second=0, microsecond=0)
+        # Reserve time to cancel an in-flight write before the session boundary.
+        budget = min(5.0, (close - now).total_seconds() - .25)
+        if budget <= 0:
+            self.state["shutdown_flush"] = "DEFERRED_DEADLINE"
+            return
+        try:
+            async with asyncio.timeout(budget):
+                # Save raw data first; do not wait for the optional last Greeks job.
+                await self.flush_once()
+                if greek_task is not None:
+                    await greek_task
+                while (await asyncio.to_thread(self.journal.counts)).get("PENDING", 0):
+                    await self.flush_once()
+            self.state["shutdown_flush"] = "COMPLETE"
+        except TimeoutError:
+            self.state["shutdown_flush"] = "DEFERRED_DEADLINE"
+        except Exception as error:
+            self.state["shutdown_flush"] = "DEFERRED_DATABASE_ERROR"
+            self.state["database_error"] = error_code(error)
+            await self.incident("SHUTDOWN_FLUSH_FAILED")
+
     async def run(self, scheduler, cycles=None):
+        market = check_component('collector')
+        if not market['allowed']:
+            self.state.update(state='MARKET_GATE_CLOSED', gateway=market)
+            return self.state
         db_task = asyncio.create_task(self.database_worker())
         greek_task = None
         failures, next_request, last_slot = 0, 0.0, None
@@ -134,6 +176,9 @@ class RecoveryService:
             await self.publish()
             async for expected, _ in scheduler.tick_generator():
                 now = datetime.now(timezone.utc)
+                if not check_component('collector', now=now, enforce_time=False, record=False)['allowed']:
+                    self.state['source_error'] = 'MARKET_GATE_CLOSED'
+                    break
                 interval = timedelta(seconds=scheduler.interval_seconds)
                 self.state["sampler_heartbeat_at"] = now.isoformat()
                 if last_slot is not None:
@@ -182,25 +227,34 @@ class RecoveryService:
                     break
         finally:
             scheduler.stop()
-            if greek_task is not None:
-                greek_task.cancel()
-                with suppress(asyncio.CancelledError):
-                    await greek_task
             self.stopping.set()
             db_task.cancel()
             with suppress(asyncio.CancelledError):
                 await db_task
-            with suppress(Exception):
-                await asyncio.wait_for(self.writer.stop(), 2)
-            await self.adapter.stop()
-            self.state["state"] = "STOPPED"
-            await self.publish()
+            try:
+                # The scheduler ends just after the 15:29:55 tick. Its final raw
+                # record may still be in SQLite while the DB worker is sleeping.
+                await self.finish_pending(greek_task)
+            finally:
+                if greek_task is not None:
+                    greek_task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await greek_task
+                with suppress(Exception):
+                    await asyncio.wait_for(self.writer.stop(), 2)
+                await self.adapter.stop()
+                self.state["state"] = "STOPPED"
+                await self.publish()
         return self.state
 
 
 async def main_async(args):
     if args.status:
         print((RUNTIME / "status.json").read_text() if (RUNTIME / "status.json").exists() else '{"state":"NEVER_STARTED"}')
+        return 0
+    market = check_component('collector', enforce_time=not bool(args.history_date or args.replay))
+    if not market['allowed']:
+        print(json.dumps(dict(state='MARKET_GATE_CLOSED', collection_started=False, gateway=market)))
         return 0
     if not args.history_date and not args.replay and not session_time(datetime.now(timezone.utc)):
         # Safe after-close launchd runs do no provider/database I/O.
@@ -269,6 +323,10 @@ def main():
     try:
         if args.status:
             return asyncio.run(main_async(args))
+        market = check_component('collector', enforce_time=not bool(args.history_date or args.replay))
+        if not market['allowed']:
+            print(json.dumps(dict(state='MARKET_GATE_CLOSED', collection_started=False, gateway=market)))
+            return 0
         with ProcessCollectorLock():
             return asyncio.run(main_async(args))
     except (Exception, asyncio.CancelledError) as error:

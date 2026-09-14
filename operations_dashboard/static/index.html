@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Hermes · Market operations</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <aside class="rail">
+    <a class="brand" href="/" aria-label="Hermes home"><span class="brand-icon">H</span><span>HERMES<span class="brand-sub">OPERATIONS</span></span></a>
+    <div class="rail-label">WORKSPACE</div>
+    <nav aria-label="Dashboard sections">
+      <a class="nav-active" href="#overview"><span class="nav-icon">◫</span> Overview</a>
+      <a href="#exports"><span class="nav-icon">▤</span> Daily exports</a>
+      <a href="#calendar"><span class="nav-icon">▦</span> Market calendar</a>
+      <a href="#preview"><span class="nav-icon">≡</span> Data explorer</a>
+    </nav>
+    <div class="rail-bottom"><span class="live-dot"></span> LOCAL WORKSPACE<p>Read-only monitoring<br>Asia/Kolkata · IST</p><div class="rail-version">HERMES V0 <span>01</span></div></div>
+  </aside>
+
+  <main id="overview">
+    <header class="page-header">
+      <div><div class="eyebrow">MARKET DATA / OPERATIONS</div><h1>Market operations<span class="heading-dot">.</span></h1><p class="subheading">From raw receipts to clean, traceable data.</p></div>
+      <div class="header-actions"><div class="refresh-meta"><span class="live-dot"></span> <span id="refresh-state">Connecting</span><small id="refresh-time">Local evidence · 30s refresh</small></div><button type="button" id="refresh-button" class="button secondary">↻ <span>Refresh</span></button></div>
+    </header>
+    <div id="error-banner" class="error-banner" role="alert" hidden></div>
+
+    <section class="gateway-card" aria-labelledby="gateway-heading">
+      <div class="gateway-left"><div class="eyebrow">MARKET SESSION GATEWAY <span id="gate-date"></span></div><div class="gateway-title"><span id="gate-indicator" class="gate-indicator"></span><h2 id="gateway-heading">Checking market calendar</h2><span id="gate-badge" class="badge neutral">CHECKING</span></div><p id="gate-reason">Reading the local official market calendar.</p><div class="gateway-source"><span id="gate-source-label">Official source</span><a id="gate-source" href="#" target="_blank" rel="noopener noreferrer" hidden>View NSE circular ↗</a></div></div>
+      <div class="gateway-next"><span class="eyebrow">NEXT PERMITTED SESSION</span><strong id="next-session">—</strong><span id="next-session-detail">Based on the cached market calendar</span></div>
+    </section>
+
+    <section class="pipeline" aria-label="Pipeline schedule">
+      <div class="pipeline-step"><span class="step-number">01</span><div><strong>Official market calendar</strong><span id="calendar-health">Calendar gate checked before jobs</span></div><span id="calendar-badge" class="badge neutral">—</span></div><span class="pipeline-arrow" aria-hidden="true">→</span>
+      <div class="pipeline-step"><span class="step-number">02</span><div><strong>Raw data collection</strong><span>09:15–15:30 IST · weekdays</span></div><span id="collector-badge" class="badge neutral">—</span></div><span class="pipeline-arrow" aria-hidden="true">→</span>
+      <div class="pipeline-step"><span class="step-number">03</span><div><strong>Clean & publish to S3</strong><span>15:45 IST · weekdays</span></div><span id="cleaner-badge" class="badge neutral">—</span></div>
+    </section>
+
+    <div class="section-toolbar"><div><h2>Session overview</h2><p id="selected-description">Choose a date to inspect its data and evidence.</p></div><label class="date-control" for="date-picker"><span>SESSION DATE</span><input id="date-picker" type="date" aria-label="Select session date"></label></div>
+    <section class="metrics" aria-label="Selected date metrics">
+      <article class="metric"><span class="metric-label">RAW OPTION RECEIPTS <span class="metric-glyph">▤</span></span><strong id="raw-count">—</strong><span id="raw-count-detail">Checking PostgreSQL</span><div class="metric-bottom"><span id="db-indicator" class="small-dot"></span><span id="db-state">Read-only query</span></div></article>
+      <article class="metric"><span class="metric-label">CLEAN ROWS / TABLE <span class="metric-glyph">◈</span></span><strong id="clean-count">—</strong><span id="clean-count-detail">Observations + options</span><div class="metric-bottom"><span id="quality-indicator" class="small-dot"></span><span id="quality-state">No quality report loaded</span></div></article>
+      <article class="metric"><span class="metric-label">RECEIPT SLOT COVERAGE <span class="metric-glyph">▥</span></span><strong id="coverage-value">—</strong><span id="coverage-detail">Expected vs captured 5-second slots</span><div class="coverage-track"><span id="coverage-bar"></span></div></article>
+      <article class="metric"><span class="metric-label">QUARANTINED ROWS <span class="metric-glyph">◇</span></span><strong id="quarantine-count">—</strong><span id="quarantine-detail">From the local quality report</span><div class="metric-bottom"><span class="small-dot amber"></span><span>Missing data stays null</span></div></article>
+    </section>
+
+    <div class="content-grid">
+      <section class="panel exports-panel" id="exports"><div class="panel-header"><div><span class="eyebrow">CLEAN DATA</span><h2>Daily exports</h2></div><span id="export-count" class="pill">0 sessions</span></div><p class="panel-description">Two Parquet tables per session, linked by observation ID.</p><div class="table-scroll"><table class="export-table"><thead><tr><th>Session</th><th>Rows / table</th><th>Quality</th><th>Publication</th><th><span class="sr-only">Explore</span></th></tr></thead><tbody id="export-body"><tr><td colspan="5" class="empty">Loading local export history…</td></tr></tbody></table></div><div class="panel-foot"><span class="small-dot green"></span><span id="s3-evidence">S3 publication reflects the saved commit evidence.</span></div></section>
+      <section class="panel calendar-panel" id="calendar"><div class="panel-header"><div><span class="eyebrow">OFFICIAL SCHEDULE</span><h2>Upcoming holidays</h2></div><span class="calendar-mark">▦</span></div><p class="panel-description">Market jobs stay blocked on closed sessions.</p><div id="holiday-list" class="holiday-list"><p class="empty">Reading cached calendar…</p></div><div class="panel-foot calendar-foot"><span id="calendar-cache-time">Calendar cache not yet loaded</span><a id="calendar-link" href="#" target="_blank" rel="noopener noreferrer" hidden>NSE circular ↗</a></div></section>
+    </div>
+
+    <section class="panel explorer-panel" id="preview"><div class="panel-header"><div><span class="eyebrow">LOCAL PARQUET PREVIEW</span><h2>Data explorer</h2></div><div class="tabs" role="tablist" aria-label="Clean data tables"><button id="observations-tab" type="button" role="tab" aria-selected="true" class="tab active" data-table="observations">Observations</button><button id="options-tab" type="button" role="tab" aria-selected="false" class="tab" data-table="options">Options</button></div></div><p id="preview-description" class="panel-description">Timestamps, spot, supplied IV and volume, with source provenance.</p><div class="table-scroll preview-scroll"><table id="preview-table"><thead id="preview-head"></thead><tbody id="preview-body"></tbody></table><p id="preview-empty" class="empty" hidden></p></div><div class="panel-foot"><span id="preview-summary">First 5 rows from the selected local export</span><a id="aws-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Open session in AWS S3 ↗</a></div></section>
+
+    <section class="evidence-grid" aria-label="Data provenance and operational evidence">
+      <article class="evidence-note"><span class="note-icon">i</span><div><h3>Quality and collection are separate checks</h3><p id="quality-note">A cleaning PASS validates the rows received. Missing receipt slots remain visible, and provider event time remains unverified.</p><p id="iv-note">Raw IV is unavailable in this PostgreSQL flow. IV and Greeks remain null; days to expiry is calculated.</p></div></article>
+      <article class="evidence-details"><div class="evidence-heading"><h3>Latest operational evidence</h3><span class="badge neutral">LOCAL</span></div><dl><div><dt>Collector heartbeat</dt><dd id="collector-heartbeat">—</dd></div><div><dt>Collection state</dt><dd id="collector-state">—</dd></div><div><dt>Cleaning check</dt><dd id="cleaning-check">—</dd></div><div><dt>Collector gateway</dt><dd id="collector-gate">—</dd></div><div><dt>Watchdog gateway</dt><dd id="watchdog-gate">—</dd></div><div><dt>Cleaner gateway</dt><dd id="cleaner-gate">—</dd></div><div><dt>Calendar refresh</dt><dd id="calendar-refresh">—</dd></div><div><dt>Calendar valid until</dt><dd id="calendar-expiry">—</dd></div></dl></article>
+    </section>
+    <footer><span>HERMES V0 <span class="footer-divider">/</span> Read-only market evidence</span><span id="footer-time">All session times are IST (UTC+05:30)</span></footer>
+  </main>
+</body>
+</html>

@@ -373,6 +373,9 @@ def setup_signal_handlers(service: CollectorService):
 
 async def run_collector():
     """Main entry point for running the collector."""
+    from market_calendar.run_guarded import check_component
+    if not check_component('collector')['allowed']:
+        return
     # Create components
     adapter = OpenAlgoAdapter()
     validator = SnapshotValidator()

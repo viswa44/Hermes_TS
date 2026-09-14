@@ -22,7 +22,7 @@ Hermes V0 captures market observations through OpenAlgo and stores them in Postg
 | `Agent_Control/` | Development queue, role state, handoffs, and audit reports |
 | `source_of_truth/` | Architecture, boundaries, data contracts, and development governance |
 
-The old empty `features/`, `outcomes/`, `quality/`, `research/`, `dashboard/`, and `scripts/` directories were placeholders. Future components should be added when implemented; the existing domain models, schema, and roadmap remain available. The dashboard implementation is `dashboard.py`.
+The old empty `features/`, `outcomes/`, `quality/`, `research/`, `dashboard/`, and `scripts/` directories were placeholders. Future components should be added when implemented; the existing domain models, schema, and roadmap remain available. The earlier dashboard is `dashboard.py`; the workspace operations dashboard now lives separately in [operations_dashboard/](../operations_dashboard/README.md).
 
 ## Run from the workspace
 
@@ -46,7 +46,9 @@ Start the existing collector manually when required:
 zsh hermes_v0/automation/run_b04_option_metrics.zsh
 ```
 
-This launcher reads the OpenAlgo API key from the existing macOS Keychain item, sets the workspace import path, uses the dedicated Hermes Python environment, and invokes `collector.recovery`. The collector enforces a single-process lock and its market-session limits. The existing LaunchAgents continue to reference the same paths. OpenAlgo, the Fyers session, PostgreSQL, and the Keychain entry must be available for collection.
+This launcher reads the OpenAlgo API key from the existing macOS Keychain item, sets the workspace import path, uses the dedicated Hermes Python environment, and invokes `collector.recovery`. The collector enforces a single-process lock and its market-session limits. The installed collector and watchdog LaunchAgents enter the shared [market gateway](../market_calendar/README.md) before importing market jobs; the launcher also checks the gate before reading the Keychain. OpenAlgo, the Fyers session, PostgreSQL, and the Keychain entry must be available for collection.
+
+Automatic collection runs Monday–Friday, 09:15–15:30 IST, only on an open NSE F&O date with a fresh official calendar. Weekends, holidays and unknown/stale calendars block startup and provider work. Manual recovery/replay also requires an open execution date; `--status` remains available. At the final 15:29:55 slot, shutdown gives buffered observations a bounded opportunity to reach PostgreSQL before the session closes. If time or database availability prevents this, the local outbox retains the pending evidence. See the [session shutdown check](Agent_Control/logs/maintenance/20260910_session_shutdown.md) for the fix and its validation limits.
 
 ## Storage and configuration
 

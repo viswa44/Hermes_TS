@@ -131,7 +131,11 @@ class AdapterOptionMetricsTests(IsolatedAsyncioTestCase):
             raise AssertionError(endpoint)
 
         adapter._request_with_retry = provider  # type: ignore[method-assign]
-        result = await adapter.collect_atm_option_metrics(OBSERVED, "2026-09-07")
+        # The fixture models September 7; nearest-expiry selection must not
+        # depend on the real date on which this mocked test is run.
+        with patch("hermes_v0.collector.adapters.openalgo_adapter.datetime", wraps=datetime) as clock:
+            clock.now.side_effect = lambda tz=None: OBSERVED.astimezone(tz) if tz else OBSERVED.replace(tzinfo=None)
+            result = await adapter.collect_atm_option_metrics(OBSERVED, "2026-09-07")
 
         self.assertEqual(24800.0, result.market_snapshot.spot_ltp)
         self.assertEqual("09SEP26", result.option_snapshots[0].expiry_date)

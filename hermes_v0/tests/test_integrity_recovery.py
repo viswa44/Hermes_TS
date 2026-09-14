@@ -21,6 +21,11 @@ from hermes_v0.automation.watchdog import decision
 SLOT = datetime(2026, 9, 8, 10, 0, tzinfo=IST)
 
 
+@pytest.fixture(autouse=True)
+def open_calendar_for_integrity_mechanics(monkeypatch):
+    monkeypatch.setattr('hermes_v0.collector.recovery.check_component', lambda *args, **kwargs: {'allowed': True, 'status': 'OPEN'})
+
+
 def raw(slot=SLOT, oi=100):
     return Observation.make("RAW", slot, slot, slot+timedelta(seconds=.1), dict(
         symbol="NIFTY", spot_ltp=23700.0, expiry="15SEP26", strike=23700,
@@ -334,3 +339,134 @@ def test_raw_is_durable_before_blocked_greeks_and_shutdown(tmp_path):
         assert [r.data["kind"] for r in j.pending()] == ["RAW", "RAW"]
         assert json.loads((tmp_path / "status.json").read_text())["state"] == "STOPPED"
     asyncio.run(case())
+
+
+@pytest.mark.parametrize("worker_mid_commit", [False, True])
+def test_final_session_capture_and_greeks_are_saved_before_shutdown(tmp_path, worker_mid_commit):
+    async def case():
+        slot = SLOT.replace(hour=15, minute=29, second=55)
+        capture = raw(slot)
+        derived = Observation.make("DERIVED", slot, slot+timedelta(seconds=.2),
+            slot+timedelta(seconds=.4), dict(
+                symbol="NIFTY15SEP2623700CE", raw_key=capture.key, raw_digest=capture.digest,
+                raw_received_at=capture.data["received_at"], expiry="15SEP26", strike=23700,
+                side="CE", values=dict(iv=15.,delta=.5,gamma=.001,theta=-1.,vega=3.,rho=.1,
+                    option_price=50.,forward_price=None,spot_price=23700.,interest_rate=6.5)))
+        class Clock:
+            @staticmethod
+            def now(tz): return slot.astimezone(tz)
+        journal = Journal(tmp_path / "spool.sqlite")
+        raw_saved = asyncio.Event()
+        class Adapter:
+            prepared_date = slot.date()
+            async def start(self): pass
+            async def stop(self): pass
+            async def raw(self, expected): return capture
+            async def derived(self, observation):
+                # The last optional calculation must not block persistence of raw data.
+                await raw_saved.wait()
+                return [derived]
+        class Writer:
+            def __init__(self):
+                self.saved = []
+                self.attempts = 0
+                self.in_flight = asyncio.Event()
+            async def start(self): pass
+            async def stop(self): pass
+            async def store(self, observation):
+                self.attempts += 1
+                # Model a committed write whose acknowledgment is interrupted.
+                if observation.payload not in self.saved:
+                    self.saved.append(observation.payload)
+                if observation.data["kind"] == "RAW": raw_saved.set()
+                if worker_mid_commit and self.attempts == 1:
+                    self.in_flight.set()
+                    await asyncio.Event().wait()
+            async def latest_raw(self): return slot+timedelta(seconds=.1)
+        class Scheduler:
+            interval_seconds = 5
+            def stop(self): pass
+            async def tick_generator(self):
+                yield slot, slot.date().isoformat()
+                if worker_mid_commit:
+                    await writer.in_flight.wait()
+        writer = Writer()
+        service = RecoveryService(Adapter(), writer, journal, status_path=tmp_path / "status.json")
+        async def sleeping_worker():
+            # Reproduce a worker between flushes when the final tick ends.
+            await asyncio.Event().wait()
+        if not worker_mid_commit:
+            service.database_worker = sleeping_worker
+        with patch("hermes_v0.collector.recovery.datetime", Clock):
+            state = await asyncio.wait_for(service.run(Scheduler()), 3)
+        assert writer.saved == [capture.payload, derived.payload]
+        assert writer.attempts == (3 if worker_mid_commit else 2)
+        assert journal.counts() == {"ACKNOWLEDGED": 2}
+        assert state["state"] == "STOPPED"
+        assert state["shutdown_flush"] == "COMPLETE"
+    asyncio.run(case())
+
+
+@pytest.mark.parametrize("now", [
+    SLOT.replace(hour=9, minute=14, second=59),
+    SLOT.replace(hour=15, minute=30),
+    SLOT.replace(day=12),  # Saturday
+    SLOT.replace(day=13),  # Sunday
+])
+def test_shutdown_does_not_flush_outside_weekday_session(tmp_path, now):
+    class Clock:
+        @staticmethod
+        def now(tz): return now.astimezone(tz)
+    journal = Journal(tmp_path / "spool.sqlite")
+    capture = raw()
+    journal.put(capture)
+    writer = AsyncMock()
+    service = RecoveryService(None, writer, journal, status_path=tmp_path / "status.json")
+    with patch("hermes_v0.collector.recovery.datetime", Clock):
+        asyncio.run(service.finish_pending())
+    writer.start.assert_not_awaited()
+    assert [r.payload for r in journal.pending()] == [capture.payload]
+    assert service.state["shutdown_flush"] == "DEFERRED_MARKET_CLOSED"
+
+
+def test_shutdown_deadline_cancels_write_and_keeps_raw_for_replay(tmp_path):
+    async def case():
+        now = SLOT.replace(hour=15, minute=29, second=59, microsecond=500000)
+        class Clock:
+            @staticmethod
+            def now(tz): return now.astimezone(tz)
+        journal = Journal(tmp_path / "spool.sqlite")
+        capture = raw()
+        journal.put(capture)
+        cancelled = asyncio.Event()
+        class Writer:
+            async def start(self): pass
+            async def store(self, observation):
+                try:
+                    await asyncio.Event().wait()
+                finally:
+                    cancelled.set()
+        service = RecoveryService(None, Writer(), journal, status_path=tmp_path / "status.json")
+        with patch("hermes_v0.collector.recovery.datetime", Clock):
+            await asyncio.wait_for(service.finish_pending(), 1)
+        assert cancelled.is_set()
+        assert [r.payload for r in journal.pending()] == [capture.payload]
+        assert service.state["shutdown_flush"] == "DEFERRED_DEADLINE"
+    asyncio.run(case())
+
+
+def test_shutdown_database_failure_preserves_pending_evidence(tmp_path):
+    class Clock:
+        @staticmethod
+        def now(tz): return SLOT.astimezone(tz)
+    journal = Journal(tmp_path / "spool.sqlite")
+    capture = raw()
+    journal.put(capture)
+    writer = AsyncMock()
+    writer.start.side_effect = ConnectionError()
+    service = RecoveryService(None, writer, journal, status_path=tmp_path / "status.json")
+    with patch("hermes_v0.collector.recovery.datetime", Clock):
+        asyncio.run(service.finish_pending())
+    assert [r.payload for r in journal.pending()] == [capture.payload]
+    assert service.state["shutdown_flush"] == "DEFERRED_DATABASE_ERROR"
+    assert service.state["database_error"] == "ConnectionError"

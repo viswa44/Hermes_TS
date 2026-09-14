@@ -8,6 +8,7 @@ import os
 import subprocess
 
 import httpx
+from market_calendar.run_guarded import check_component
 
 from hermes_v0.collector.integrity import session_time, instant, IST
 from hermes_v0.collector.live_option_metrics import ProcessCollectorLock, CollectorAlreadyRunningError
@@ -52,6 +53,11 @@ async def inspect_database():
 async def check():
     now = datetime.now(timezone.utc)
     path = RUNTIME / "watchdog.json"
+    market = check_component('watchdog', now=now)
+    if not market['allowed']:
+        write_status(path, dict(date=now.astimezone(IST).date().isoformat(), checked_at=now.isoformat(),
+                               state='MARKET_GATE_CLOSED', gateway=market, starts_today=0))
+        return
     def read_json(target):
         try:
             return json.loads(target.read_text())
@@ -113,6 +119,11 @@ async def check():
 
 
 def main():
+    market = check_component('watchdog')
+    if not market['allowed']:
+        write_status(RUNTIME / 'watchdog.json', dict(state='MARKET_GATE_CLOSED', gateway=market,
+                                                   checked_at=datetime.now(timezone.utc).isoformat(), starts_today=0))
+        return 0
     RUNTIME.mkdir(parents=True, exist_ok=True, mode=0o700)
     try:
         with ProcessCollectorLock(RUNTIME / "watchdog.lock"):

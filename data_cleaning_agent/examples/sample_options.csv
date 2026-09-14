@@ -1,0 +1,3 @@
+timestamps,underlying,symbol,exchange,spot,iv,volume,oi,ltp,strike,optiontype,expirydate,timestamp_source,data_status
+2026-09-10T10:00:00+05:30,NIFTY,NIFTY15SEP2625000CE,NFO,25010,0.20,1200,25000,180.5,25000,CE,2026-09-15,synthetic_example,SYNTHETIC
+2026-09-10T10:00:00+05:30,NIFTY,NIFTY15SEP2625000PE,NFO,25010,0.21,900,,162.2,25000,PE,2026-09-15,synthetic_example,SYNTHETIC

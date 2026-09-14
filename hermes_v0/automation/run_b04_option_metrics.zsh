@@ -17,6 +17,12 @@ if [[ ! -x "${python_bin}" ]]; then
     exit 2
 fi
 
+# Refuse holiday/unknown-calendar startup before accessing the Keychain.
+export PYTHONPATH="${workspace_root}"
+if ! "${python_bin}" -m market_calendar.run_guarded collector --check-only; then
+    exit 0
+fi
+
 # ``security`` returns the secret only to this process. It is never echoed.
 if ! api_key="$(/usr/bin/security find-generic-password \
     -a "${keychain_account}" -s "${keychain_service}" -w 2>/dev/null)"; then
