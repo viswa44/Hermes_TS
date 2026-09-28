@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "verified_parquet_hashes": 18,
+  "joined_source_rows": 61056,
+  "lagged_sample_rows": 3576,
+  "independently_recomputed_correlation_rows": 208,
+  "checks": [
+    "ID and date/contract alignment",
+    "continuous same-contract segments",
+    "target return and past spot return recomputed from quotes",
+    "volume increment recomputed from counters",
+    "current IV/delta traced to available calculation",
+    "calculation and source age bounds",
+    "nonoverlapping future intervals within side/day",
+    "all daily and pooled Pearson/Spearman values recomputed with scipy"
+  ],
+  "scope": "Research artifact consistency only; no live exchange freshness, held-out prediction or trading return validation"
+}

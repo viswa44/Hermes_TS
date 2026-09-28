@@ -15,6 +15,7 @@ import pandas as pd
 from ..config.settings import Settings
 from ..models.cleaning_plan import CleaningPlan
 from ..tools.cleaner import clean_data
+from ..tools.enrichment import enrich_tables
 from ..tools.profiler import profile_data
 from ..tools.schema_detector import detect_schema, validate_plan
 from ..tools.validator import validate_tables
@@ -168,18 +169,22 @@ class DataCleaningAgent:
         snapshot.chmod(0o600)
         settings_metadata = self.settings.model_dump(mode='json', exclude={'mistral_api_key', 'postgres_password'})
         manifest = {
-            'schema_version': 1, 'run_id': run_id, 'status': 'FAIL',
+            'schema_version': 2, 'run_id': run_id, 'status': 'FAIL',
             'created_at': datetime.now(timezone.utc).isoformat(),
             'source_file': source.name, 'source_sha256': file_sha256(snapshot),
             'planner': self.planner, 'settings': settings_metadata,
             'source_context': source_context or {},
             'artifacts': {},
             'field_provenance': {
-                'spot': 'supplied', 'iv': 'supplied; normalized to decimal',
+                'spot': 'supplied', 'iv': 'decimal; iv_source and iv_available_at distinguish supplied and stored model estimates',
                 'volume': 'supplied option-contract volume', 'oi': 'supplied', 'ltp': 'supplied',
                 'strike': 'supplied', 'optiontype': 'supplied', 'expirydate': 'supplied; date-only close is configured',
                 'daystoexpiry': '(expiry_utc - timestamp_utc) / 86400',
-                'greeks': 'optional European Black-Scholes-Merton; ACT/365, daily theta, vega per 1 percentage point',
+                'greeks': 'linked stored OPENALGO_BLACK76 where available, with separate receipt time; optional local Black-Scholes-Merton for other inputs',
+                'calculation_interest_rate': 'decimal annual rate; original source percentage retained in stored_calculation_fields_json',
+                'greek_units': 'theta per calendar day; vega and rho per percentage point; Black-76 delta/gamma describe the calculation underlying',
+                'identity': 'observation_id is calculated before enrichment and remains stable when analytics or contract labels arrive',
+                'availability': 'iv_available_at and greeks_available_at must not be backdated to the raw timestamps field',
             },
         }
         accepted, rejected = 0, 0
@@ -196,9 +201,11 @@ class DataCleaningAgent:
             plan = self.create_plan(profile, schema)
             _write_json(staging / 'cleaning_plan.json', plan.model_dump())
             cleaned = clean_data(frame, plan, self.settings)
+            completeness = enrich_tables(cleaned, frame, source_context)
             validation = validate_tables(cleaned.observations, cleaned.options)
             accepted, rejected = len(cleaned.observations), len(cleaned.quarantine)
             manifest['table_counts'] = {'observations.parquet': accepted, 'options.parquet': len(cleaned.options)}
+            manifest['feature_completeness'] = completeness
             fraction = rejected / len(frame)
             count_matches = accepted + rejected + cleaned.duplicates_removed == len(frame)
             passed = validation.passed and accepted > 0 and count_matches and fraction <= self.settings.max_quarantine_fraction
@@ -210,6 +217,7 @@ class DataCleaningAgent:
                 'quarantine_fraction': fraction, 'max_quarantine_fraction': self.settings.max_quarantine_fraction,
                 'row_count_reconciled': count_matches, 'validation': validation.to_dict(),
                 'missing_values': {name: int(cleaned.observations[name].isna().sum()) for name in ('iv', 'volume')},
+                'feature_completeness': completeness,
                 'unknown_columns': schema.unknown_columns, 'ignored_derived_columns': schema.ignored_derived_columns,
                 'timestamp_verification': 'Source labels preserved; cleaning does not verify provider freshness.',
                 'source_context': source_context or {},
@@ -221,6 +229,14 @@ class DataCleaningAgent:
             tables_dir.mkdir(exist_ok=True)
             cleaned.observations.to_parquet(tables_dir / 'observations.parquet', index=False)
             cleaned.options.to_parquet(tables_dir / 'options.parquet', index=False)
+            # Human-readable companions retain offset-aware dates, identifiers,
+            # full precision, and blank missing values (never fabricated zeroes).
+            for name, table in (("observations", cleaned.observations), ("options", cleaned.options)):
+                readable = table.copy()
+                for column in readable:
+                    if isinstance(readable[column].dtype, pd.DatetimeTZDtype):
+                        readable[column] = readable[column].map(lambda value: None if pd.isna(value) else value.isoformat())
+                readable.to_csv(tables_dir / (name + '.csv'), index=False)
             manifest['status'] = 'PASS' if passed else 'FAIL'
         except Exception as exc:
             accepted, rejected = 0, input_rows

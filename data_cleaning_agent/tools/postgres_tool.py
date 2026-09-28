@@ -1,9 +1,9 @@
 """Read-only, bounded exports of immutable Hermes PostgreSQL observations.
 
-The caller owns a READ ONLY REPEATABLE READ transaction. Queries deliberately
-avoid derived tables: provider-calculated Greeks are separate observations and
-are not an implied-volatility source for a raw quote. No database mutations are
-performed here. Receipt coverage describes collection, not provider freshness.
+The caller owns a READ ONLY REPEATABLE READ transaction. Raw canonical fields
+remain unchanged; separately linked calculation evidence can support downstream
+enrichment without relabeling calculated values as raw observations. No database
+mutations are performed here. Receipt coverage is not provider freshness.
 """
 
 from __future__ import annotations
@@ -82,7 +82,9 @@ _EXPORT_SQL = """
            m.trading_date AS market_trading_date, m.version AS market_version,
            m.data_status AS market_data_status, m.evidence AS market_evidence,
            r.match_count AS receipt_match_count, r.observation_id AS receipt_id,
-           r.timestamp_basis, r.freshness, r.evidence AS receipt_evidence
+           r.timestamp_basis, r.freshness, r.evidence AS receipt_evidence,
+           to_jsonb(o)::text AS source_option_json,
+           m.source_market_json, g.source_greeks_json
     FROM public.option_snapshot o
     LEFT JOIN LATERAL (
         SELECT count(*) AS match_count, max(spot_ltp) AS spot_ltp,
@@ -90,12 +92,16 @@ _EXPORT_SQL = """
                max(data_status::text) AS data_status,
                jsonb_agg(jsonb_build_object('timestamp', timestamp_ist,
                    'symbol', symbol, 'spot', spot_ltp, 'trading_date', trading_date,
-                   'version', version, 'data_status', data_status))::text AS evidence
+                   'version', version, 'data_status', data_status))::text AS evidence,
+               COALESCE(jsonb_agg(to_jsonb(m) - 'provider_payload'
+                   ORDER BY m.timestamp_ist, m.symbol, m.version), '[]'::jsonb)::text
+                   AS source_market_json
         FROM public.market_snapshot m
         WHERE m.timestamp_ist=o.timestamp_ist AND m.symbol=o.symbol
     ) m ON TRUE
     LEFT JOIN LATERAL (
-        SELECT count(*) AS match_count, max(observation_id) AS observation_id,
+        SELECT count(*) AS match_count,
+               CASE WHEN count(*)=1 THEN min(observation_id) END AS observation_id,
                max(timestamp_basis) AS timestamp_basis, max(freshness) AS freshness,
                jsonb_agg(jsonb_build_object('observation_id', observation_id,
                    'digest', digest, 'scheduled_at', scheduled_at,
@@ -105,6 +111,23 @@ _EXPORT_SQL = """
         FROM public.hermes_ingest_receipt r
         WHERE r.kind='RAW' AND r.symbol=o.symbol AND r.received_at=o.timestamp_ist
     ) r ON TRUE
+    LEFT JOIN LATERAL (
+        SELECT COALESCE(jsonb_agg(to_jsonb(g) || jsonb_build_object(
+                   'derived_receipts', COALESCE(d.evidence, '[]'::jsonb))
+                   ORDER BY g.option_symbol, g.version, g.ingestion_time), '[]'::jsonb)::text
+                   AS source_greeks_json
+        FROM public.option_greeks_snapshot g
+        LEFT JOIN LATERAL (
+            SELECT jsonb_agg(to_jsonb(d) ORDER BY d.observation_id) AS evidence
+            FROM public.hermes_ingest_receipt d
+            WHERE d.kind='DERIVED' AND d.parent_observation_id=r.observation_id
+              AND d.symbol=g.option_symbol AND d.received_at=g.ingestion_time
+        ) d ON TRUE
+        WHERE g.timestamp_ist=o.timestamp_ist AND g.underlying_symbol=o.symbol
+          AND g.strike=o.strike AND g.option_type=o.option_type
+          AND g.expiry_date=o.expiry_date AND g.trading_date=o.trading_date
+          AND g.version=o.version
+    ) g ON TRUE
     WHERE o.timestamp_ist >= %s AND o.timestamp_ist < %s
     ORDER BY o.timestamp_ist, o.symbol, o.strike, o.option_type, o.expiry_date
     LIMIT %s
@@ -164,6 +187,9 @@ def _canonical(row: dict, trading_date: date) -> tuple[dict, list[str]]:
         "source_market_match_count": row["market_match_count"],
         "source_receipt_evidence_json": row["receipt_evidence"],
         "source_market_evidence_json": row["market_evidence"],
+        "source_option_json": row["source_option_json"],
+        "source_market_json": row["source_market_json"],
+        "source_greeks_json": row["source_greeks_json"],
         "source_integrity_issues": ",".join(issues) if issues else None,
     }
     return {key: _json_value(value) for key, value in record.items()}, issues
@@ -297,8 +323,9 @@ def export_trading_day(connection, trading_date: date, output_path: Path, *,
                                    "end_exclusive": end.isoformat(), "slots": expected_slots}],
         }
     metadata.update({
-        "schema_version": 1, "source": "postgresql",
-        "source_tables": ["public.option_snapshot", "public.market_snapshot", "public.hermes_ingest_receipt"],
+        "schema_version": 2, "source": "postgresql",
+        "source_tables": ["public.option_snapshot", "public.market_snapshot", "public.hermes_ingest_receipt",
+                          "public.option_greeks_snapshot"],
         "trading_date": trading_date.isoformat(), "session_timezone": "Asia/Kolkata",
         "session_start_inclusive": start.isoformat(), "session_end_exclusive": end.isoformat(),
         "row_count": row_count, "row_count_reconciled": count_reconciled,
@@ -306,6 +333,6 @@ def export_trading_day(connection, trading_date: date, output_path: Path, *,
         "symbols": sorted(symbols), "anomaly_counts": dict(sorted(anomalies.items())),
         "integrity_passed": not anomalies and metadata["orphan_market_rows"] == 0,
         "timestamp_provenance": "Version 2 timestamps are application receipt time; provider timestamp is unknown. Legacy timestamps remain unverified.",
-        "iv_provenance": "Raw canonical IV is null. Stored option_snapshot.iv is retained as source_iv, with no assumed units/provenance; derived tables are not joined.",
+        "iv_provenance": "Raw canonical IV is null. Stored option_snapshot.iv is retained as source_iv with unknown units/provenance. Separate contract-matched Greek candidates and exact parent-linked calculation receipts are retained as JSON evidence for downstream enrichment; missing or ambiguous calculations never become raw IV. Legacy calculation evidence remains unverified.",
     })
     return ExportResult(output_path, row_count, digest.hexdigest(), trading_date, metadata)

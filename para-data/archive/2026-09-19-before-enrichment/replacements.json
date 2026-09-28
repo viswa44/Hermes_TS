@@ -1,0 +1,38 @@
+[
+  {
+    "file": "/Users/viswatej/Desktop/openalgo/para-data/options.parquet",
+    "backup": "/Users/viswatej/Desktop/openalgo/para-data/archive/2026-09-19-before-enrichment/options.parquet",
+    "old_sha256": "8baf11cb0f791d88f38d17b2920a3a68b32622c19d2332d03847ae829da02bc9",
+    "new_sha256": "54bf4c25eee65d3f471aa6cd755ff93b134449683989eba6923aa7a59e0855b3"
+  },
+  {
+    "file": "/Users/viswatej/Desktop/openalgo/para-data/observations (1).parquet",
+    "backup": "/Users/viswatej/Desktop/openalgo/para-data/archive/2026-09-19-before-enrichment/observations (1).parquet",
+    "old_sha256": "4438fc729317ac01cd3f0f82937c6fe303ac6d7a3cf7f94cde300b9cf6e9ccc5",
+    "new_sha256": "4cf6744bae5eff010c0a4039e8c566ef5d333d14ad43ab6c2d994edd9d851256"
+  },
+  {
+    "file": "/Users/viswatej/Desktop/openalgo/operations_dashboard/options.parquet",
+    "backup": "/Users/viswatej/Desktop/openalgo/para-data/archive/2026-09-19-before-enrichment/operations_dashboard-options.parquet",
+    "old_sha256": "8baf11cb0f791d88f38d17b2920a3a68b32622c19d2332d03847ae829da02bc9",
+    "new_sha256": "54bf4c25eee65d3f471aa6cd755ff93b134449683989eba6923aa7a59e0855b3"
+  },
+  {
+    "file": "/Users/viswatej/Desktop/openalgo/para-data/observations.parquet",
+    "backup": null,
+    "old_sha256": null,
+    "new_sha256": "4cf6744bae5eff010c0a4039e8c566ef5d333d14ad43ab6c2d994edd9d851256"
+  },
+  {
+    "file": "/Users/viswatej/Desktop/openalgo/para-data/observations.csv",
+    "backup": null,
+    "old_sha256": null,
+    "new_sha256": "77040b186573198f57f6e8adb0d45f0c851c9cd8dcaa1c368066a57aa8795ce5"
+  },
+  {
+    "file": "/Users/viswatej/Desktop/openalgo/para-data/options.csv",
+    "backup": null,
+    "old_sha256": null,
+    "new_sha256": "e265066b6bcb2b311d2189ca56f16ad6ca543a5bce2c14d13817361b983b26e6"
+  }
+]

@@ -16,7 +16,7 @@ The default catch-up window is the last 30 calendar days. Set `DAILY_START_DATE=
 
 Each completed date/source/code/configuration revision is committed once. The revision includes source rows and source integrity/coverage evidence. If late receipts arrive, a new immutable revision is published. A restart validates an existing S3 commit before reusing it. Upload failures remain retryable; deterministic quarantine waits for source or code/configuration changes. One local process lock prevents overlapping jobs.
 
-The existing RAW tables do not provide verified IV. The PostgreSQL adapter leaves IV and Greeks null and retains any legacy raw IV in local source evidence. It does not mix in separate `option_greeks_snapshot` calculations. Days to expiry is calculated for every accepted row.
+The exporter includes matching `option_greeks_snapshot` calculations as separate evidence. After the original observation ID is calculated, the cleaner imports usable stored IV/Greeks with their model, inputs, receipt linkage and availability time. RAW spot, option price, OI, volume and receipt time remain unchanged. Missing or ambiguous calculations stay missing with a reason. Days to expiry is calculated for every accepted row.
 
 From the workspace directory:
 
@@ -33,6 +33,10 @@ data_cleaning_agent/.venv/bin/python -m data_cleaning_agent.daily --date 2026-09
 # Catch up all available completed weekdays in the configured window.
 data_cleaning_agent/.venv/bin/python -m data_cleaning_agent.daily
 
+# Explicit maintenance: rebuild completed sessions, including on a weekend.
+# Each source date still needs valid market-calendar evidence.
+data_cleaning_agent/.venv/bin/python -m data_cleaning_agent.daily --rebuild-completed
+
 # Install/update only this project's LaunchAgent.
 data_cleaning_agent/.venv/bin/python -m data_cleaning_agent.automation.install_launchagent --install
 ```
@@ -45,6 +49,8 @@ Daily AWS output is in the private bucket `heremesv0-cleaned-data` in **us-east-
 s3://heremesv0-cleaned-data/cleaned/YYYY-MM-DD/
 ├── <run-uuid>/observations.parquet
 ├── <run-uuid>/options.parquet
+├── <run-uuid>/observations.csv
+├── <run-uuid>/options.csv
 ├── <run-uuid>/quality_report.json
 ├── <run-uuid>/manifest.json
 └── commits/<revision-sha256>.json
@@ -65,7 +71,7 @@ cp .env.example .env
 
 Set a **rotated** `MISTRAL_API_KEY` in your local `.env`, or supply it through your process environment. The key shared in chat is not stored in this project. `.env` is ignored by Git. AWS authentication uses boto3's normal IAM role, profile/SSO, or environment credential chain.
 
-Manual file and daily commands also require an open market day with a fresh calendar. Status commands and offline tests remain available on holidays. See the [market gateway setup](../market_calendar/README.md) and [operations dashboard](../operations_dashboard/README.md).
+Manual file and ordinary daily commands also require an open market day with a fresh calendar. The explicit `--rebuild-completed` daily maintenance command can run outside an open market day; it preserves the actual clock, completed-session cutoff, source-date calendar checks and publication checks. It cannot be combined with `--scheduled`. Status commands and offline tests remain available on holidays. See the [market gateway setup](../market_calendar/README.md) and [operations dashboard](../operations_dashboard/README.md).
 
 On an open market day, run the included synthetic sample without provider or AWS calls:
 
@@ -87,12 +93,16 @@ Both tables have one row per accepted option observation and join on `observatio
 
 | Output | Requested fields | Meaning |
 | --- | --- | --- |
-| `observations.parquet` | `timestamps`, `spot`, `iv`, `volume` | Supplied observations. IV is normalized to a decimal fraction. Volume is option-contract volume. |
-| `options.parquet` | `oi`, `ltp`, `strike`, `optiontype`, `expirydate`, `daystoexpiry`, `timestamps`, `delta`, `theta`, `gamma`, `vega` | OI, LTP and contract specifications are supplied; days to expiry and enabled Greeks are calculated. |
+| `observations.parquet` | `timestamps`, `spot`, `iv`, `volume` | RAW observations plus explicitly sourced IV, normalized to a decimal fraction. Volume is option-contract volume. |
+| `options.parquet` | `oi`, `ltp`, `strike`, `optiontype`, `expirydate`, `daystoexpiry`, `timestamps`, `delta`, `theta`, `gamma`, `vega`, `rho` | RAW option fields, time to expiry, and linked stored analytics with their availability and model assumptions. |
 
-Table 1 also retains timestamp provenance and data-status labels. Table 2 contains `greeks_source` and `derivation_status`. Unknown input columns and previously supplied Greeks are reported, retained in the source snapshot, and excluded from these output tables.
+Both tables include readable `timestamps_ist`; options include `expiry_at_ist`, `expiry_date_local` and a stable `contract_key`. Parquet timestamps remain typed UTC dates. CSV companions contain ISO dates with explicit offsets, not epoch numbers.
 
-IV is mathematically a derived quantity. Here, table 1 treats **supplied IV as an input observation**. This implementation does not solve IV from option prices. Missing IV leaves calculated Greeks null; it never substitutes zero. Option IV and volume remain attached to their observation IDs rather than being combined across CE/PE or strikes.
+Table 1 retains timestamp provenance, original `supplied_iv`, unverified `raw_iv` and `raw_iv_unit`, `iv_source`, `iv_available_at`, and available market fields. Table 2 retains bid/ask, quantities, lot/tick size where stored, `greeks_source`, `derivation_status`, `derivation_reason`, model inputs and linked calculation receipts. Complete original option, market and calculation records are retained as JSON evidence columns; market `provider_payload` is excluded. Missing contract symbols can use an unambiguous symbol from another stored calculation for the exact same contract, labeled `stored_contract_mapping`. `NFO` is labeled as the collector's known option route, not a supplied exchange field.
+
+IV from `OPENALGO_BLACK76` is imported from stored percentage units into decimal (`10.55` becomes `0.1055`). The cleaner does not solve IV from option prices or replace absent values with zero. For generic files, supplied IV retains the configured input-unit behavior; arbitrary supplied Greek columns are still excluded. Only the PostgreSQL export evidence path imports stored calculations.
+
+**Historical research must respect availability:** a model estimate may arrive seconds after its parent RAW quote and use different option/underlying prices. Use `iv_available_at` and `greeks_available_at` to decide when those features were known; do not treat them as available at `timestamps`. `calculation_underlying_kind=unverified_spot_or_forward` records the ambiguity in OpenAlgo's stored `calculation_spot_ltp`. Zero interest-rate assumptions and legacy/unverified timing remain explicit in `model_risk_flags`.
 
 ## Input contract and cleaning
 
@@ -119,7 +129,7 @@ The entire input is snapshotted locally and hashed before processing. File-level
 
 `daystoexpiry = (expiry_utc - observation_utc).total_seconds() / 86400`. It is fractional calendar time, not an integer count of trading sessions.
 
-Greeks are disabled by default. To enable the European Black-Scholes-Merton spot model, explicitly set these values in `.env` using your own assumptions:
+Importing validated stored PostgreSQL Greeks is always enabled for the daily export and does not require a new calculation. Optional local Greek calculation for supplied input files is disabled by default. To enable the European Black-Scholes-Merton spot model, explicitly supply these settings using your own assumptions:
 
 ```dotenv
 DERIVE_GREEKS=true
@@ -130,7 +140,9 @@ IV_UNIT=decimal
 
 The rates above are examples, not fetched market rates. Calculations require positive supplied spot, strike, IV and time to expiry. They use ACT/365, continuously compounded annual rates, theta per calendar day and vega per one volatility percentage point. Missing inputs leave all Greeks null with a reason. Assumptions are stored in the manifest. [Formula and unit reference](https://vollib.org/documentation/1.0.3/autoapi/py_vollib/ref_python/black_scholes_merton/greeks/analytical/index.html).
 
-OpenAlgo's current option Greeks use Black-76 with forward inputs, and its supplied IV is in percent. These calculations are a separate model; do not label them as OpenAlgo-derived Greeks. A raw Hermes export has no verified IV, so it will produce null IV/Greeks. The daily PostgreSQL adapter joins raw option records with matching market snapshots to supply spot; standalone file mode expects spot in the supplied file.
+OpenAlgo's stored Greeks use Black-76 and percentage-valued IV. Optional local Black-Scholes-Merton calculations are a separate model and are labeled accordingly. The daily adapter joins RAW option/market records and separately matches stored calculations by timestamp, contract and version. Version 2 additionally requires one DERIVED receipt with the correct RAW parent, contract, request/receipt time and scheduled slot. Legacy calculations retain an unverified legacy label and use their stored ingestion time as a conservative availability time.
+
+`feature_completeness` in the quality report and manifest counts populated fields and full/missing IV+Greek rows. Cleaning `PASS` certifies structural/integrity checks; it does not imply full feature coverage, valid model assumptions or verified provider freshness. Failed stored calculations remain null with their original status/error class and evidence.
 
 ## Quality and S3
 
@@ -148,13 +160,17 @@ Passing runs publish to:
 s3://heremesv0-cleaned-data/cleaned/<run-uuid>/
 ├── observations.parquet
 ├── options.parquet
+├── observations.csv
+├── options.csv
 ├── quality_report.json
 └── manifest.json
 ```
 
-S3 holds Parquet objects representing the two tables; this does not provision PostgreSQL tables, Athena/Glue catalogs, or S3 Tables/Iceberg resources. Uploads require an existing bucket and write permissions. They use AES256 encryption, SHA-256 checksums, and conditional writes that reject existing objects. The manifest is written last as a commit marker; consumers must require it and verify table checksums. An interrupted upload can leave objects without a manifest; rerun to create a fresh run UUID. [AWS conditional PUT behavior](https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html).
+The two Parquet files remain the primary typed tables; the CSV companions make the same linked observations readable in text and spreadsheet tools. CSV timestamps use ISO-8601 text. S3 publication does not provision PostgreSQL tables, Athena/Glue catalogs, or S3 Tables/Iceberg resources. Uploads require an existing bucket and write permissions. They use AES256 encryption, SHA-256 checksums, and conditional writes that reject existing objects. All five data/report artifacts are checked before upload, and the manifest is written last as a commit marker; consumers must require it and verify artifact checksums. An interrupted upload can leave objects without a manifest; rerun to create a fresh run UUID. [AWS conditional PUT behavior](https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html).
 
-Source snapshots, row-level quarantine and planning evidence stay local. The local manifest lists all local artifacts. The S3 manifest lists published files under `artifacts` and other checksum records under `local_evidence` with scope `local_only`. Only the four objects above are published. Provider/SDK exception bodies and secrets are excluded from CLI upload errors.
+Source snapshots, row-level quarantine and planning evidence stay local. The local manifest lists all local artifacts. The S3 manifest lists published files under `artifacts` and other checksum records under `local_evidence` with scope `local_only`. Only the six objects above are published. Provider/SDK exception bodies and secrets are excluded from CLI upload errors.
+
+The daily reader also accepts existing commits containing exactly the two Parquet files and quality report. New commits require both CSV companions as well; partial or unexpected artifact lists fail validation. Before reusing a new daily commit, the reader verifies all five artifacts against their manifest checksums and recorded sizes. It requests S3's full-object SHA-256 checksum through HEAD to avoid repeatedly downloading large files; if a full checksum is unavailable, it streams and hashes the object. Missing or changed objects fail reuse. Legacy commits receive metadata validation only; downloaded bytes still need consumer-side checksum verification.
 
 ## Inspect and test
 

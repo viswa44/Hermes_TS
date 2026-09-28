@@ -1,0 +1,303 @@
+{
+  "source_registry": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/runtime/enrichment_verification_2026-09-19.json",
+  "s3_verification_at_ist": "2026-09-19T09:20:47.564213+05:30",
+  "all_rows": 61056,
+  "version_2_rows": 57574,
+  "verified_parquet_files": [
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-07/fe0bd632-d4b9-4dae-9410-8c6a9291ecb0/observations.parquet",
+      "sha256": "488872390bd1dac7f6623d4ec3bc2d16efe2cf32f3de22d00cac5e2d2c0744a1"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-07/fe0bd632-d4b9-4dae-9410-8c6a9291ecb0/options.parquet",
+      "sha256": "3ec4fde1ad24e1c17e7f11b01d6a1b30a314320bd182acadf4205653f3c8a03d"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-08/65ae7493-16fe-43b5-8497-ae985f9913a5/observations.parquet",
+      "sha256": "7c4b300d444ac52107e3b2067cf2153d5a3fef087b63ce9066bbefd1b70dc702"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-08/65ae7493-16fe-43b5-8497-ae985f9913a5/options.parquet",
+      "sha256": "65c4e6e5a05b9adf6150033b7cd7a410f5f49dbcbeef819e3364f9a21c7e8c8b"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-09/8dbaa35d-26bc-4a4f-978b-2e400f1a8ea7/observations.parquet",
+      "sha256": "e04918d6703a2773a67dfe50b1c6a3fc2e99fce04f7c3b8d2c5e30240076f83f"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-09/8dbaa35d-26bc-4a4f-978b-2e400f1a8ea7/options.parquet",
+      "sha256": "22798d2b59a79272bfd64f204688498c964df572c298694019279a76184f5a92"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-10/2f388184-9968-49ed-aeed-d00bd5f913ba/observations.parquet",
+      "sha256": "87744fda07a1ad3ff9ae711e42e5b544f6a479ae3c44faeb98b5c7fd96b76283"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-10/2f388184-9968-49ed-aeed-d00bd5f913ba/options.parquet",
+      "sha256": "296eb1c1418f309db5e21d7940afdd6d2b6e8e05882ba46edd3c18ec199591ef"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-11/40cf6a4f-1546-437b-a615-ccbed81c72d2/observations.parquet",
+      "sha256": "31f52bc694301f267c20f967edc6b23da6235b2598c9331f833d4ba2fb284960"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-11/40cf6a4f-1546-437b-a615-ccbed81c72d2/options.parquet",
+      "sha256": "6257ce7ee1425affa12e2c59ab43da2f188483cb044ec297d61fc096abcfe4e6"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-15/6d355d52-4468-4a02-b61d-bd64008397e0/observations.parquet",
+      "sha256": "da94e81ea43ac58b5c1e927f8aff7a533b51433db46597e19c0e589b73c90f83"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-15/6d355d52-4468-4a02-b61d-bd64008397e0/options.parquet",
+      "sha256": "21e6a6b1b3b7abef2faa74cc6b5d3a3ede2096f17d7c07b5f7a3fd40d5008ad8"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-16/f5f9eb70-6130-4c9e-ae51-81bbfa92f0dc/observations.parquet",
+      "sha256": "952df1fbba8c6409d07bc2288faba8535417489126c2b6b93795fffc14f19fac"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-16/f5f9eb70-6130-4c9e-ae51-81bbfa92f0dc/options.parquet",
+      "sha256": "ba566b67a4cca360430b2098ed2b13e289813d087b8518098d2258d89d5699ed"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-17/455fb0d9-f6ed-40ab-9eaf-a46803ad4578/observations.parquet",
+      "sha256": "567018df4087a02c0e0c47233bee3ff2929632e9cc8f0fce66008cb67454eab6"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-17/455fb0d9-f6ed-40ab-9eaf-a46803ad4578/options.parquet",
+      "sha256": "62eaaeb1b624efa9de2c761e29828029acf29acdc9a45f569491f603b4d8c55f"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-18/6d204888-504c-470c-97fb-d68b0a225900/observations.parquet",
+      "sha256": "4cf6744bae5eff010c0a4039e8c566ef5d333d14ad43ab6c2d994edd9d851256"
+    },
+    {
+      "path": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-18/6d204888-504c-470c-97fb-d68b0a225900/options.parquet",
+      "sha256": "54bf4c25eee65d3f471aa6cd755ff93b134449683989eba6923aa7a59e0855b3"
+    }
+  ],
+  "dates": [
+    "2026-09-09",
+    "2026-09-10",
+    "2026-09-11",
+    "2026-09-15",
+    "2026-09-16",
+    "2026-09-17",
+    "2026-09-18"
+  ],
+  "sample_rows": 3576,
+  "counts_by_side": {
+    "CE": 1788,
+    "PE": 1788
+  },
+  "counts_by_day_side": [
+    {
+      "date": "2026-09-09",
+      "optiontype": "CE",
+      "n": 267
+    },
+    {
+      "date": "2026-09-09",
+      "optiontype": "PE",
+      "n": 267
+    },
+    {
+      "date": "2026-09-10",
+      "optiontype": "CE",
+      "n": 278
+    },
+    {
+      "date": "2026-09-10",
+      "optiontype": "PE",
+      "n": 278
+    },
+    {
+      "date": "2026-09-11",
+      "optiontype": "CE",
+      "n": 293
+    },
+    {
+      "date": "2026-09-11",
+      "optiontype": "PE",
+      "n": 293
+    },
+    {
+      "date": "2026-09-15",
+      "optiontype": "CE",
+      "n": 144
+    },
+    {
+      "date": "2026-09-15",
+      "optiontype": "PE",
+      "n": 144
+    },
+    {
+      "date": "2026-09-16",
+      "optiontype": "CE",
+      "n": 240
+    },
+    {
+      "date": "2026-09-16",
+      "optiontype": "PE",
+      "n": 240
+    },
+    {
+      "date": "2026-09-17",
+      "optiontype": "CE",
+      "n": 281
+    },
+    {
+      "date": "2026-09-17",
+      "optiontype": "PE",
+      "n": 281
+    },
+    {
+      "date": "2026-09-18",
+      "optiontype": "CE",
+      "n": 285
+    },
+    {
+      "date": "2026-09-18",
+      "optiontype": "PE",
+      "n": 285
+    }
+  ],
+  "complete_feature_rows": 3496,
+  "reported_volume_decreases": 0,
+  "filter_counts": [
+    {
+      "date": "2026-09-09",
+      "optiontype": "CE",
+      "clock_candidates": 374,
+      "missing_or_old_quote": 49,
+      "segment_change": 58,
+      "selected": 267
+    },
+    {
+      "date": "2026-09-09",
+      "optiontype": "PE",
+      "clock_candidates": 374,
+      "missing_or_old_quote": 49,
+      "segment_change": 58,
+      "selected": 267
+    },
+    {
+      "date": "2026-09-10",
+      "optiontype": "CE",
+      "clock_candidates": 374,
+      "missing_or_old_quote": 10,
+      "segment_change": 86,
+      "selected": 278
+    },
+    {
+      "date": "2026-09-10",
+      "optiontype": "PE",
+      "clock_candidates": 374,
+      "missing_or_old_quote": 10,
+      "segment_change": 86,
+      "selected": 278
+    },
+    {
+      "date": "2026-09-11",
+      "optiontype": "CE",
+      "clock_candidates": 374,
+      "missing_or_old_quote": 10,
+      "segment_change": 71,
+      "selected": 293
+    },
+    {
+      "date": "2026-09-11",
+      "optiontype": "PE",
+      "clock_candidates": 374,
+      "missing_or_old_quote": 10,
+      "segment_change": 71,
+      "selected": 293
+    },
+    {
+      "date": "2026-09-15",
+      "optiontype": "CE",
+      "clock_candidates": 210,
+      "missing_or_old_quote": 8,
+      "segment_change": 58,
+      "selected": 144
+    },
+    {
+      "date": "2026-09-15",
+      "optiontype": "PE",
+      "clock_candidates": 210,
+      "missing_or_old_quote": 8,
+      "segment_change": 58,
+      "selected": 144
+    },
+    {
+      "date": "2026-09-16",
+      "optiontype": "CE",
+      "clock_candidates": 372,
+      "missing_or_old_quote": 11,
+      "segment_change": 121,
+      "selected": 240
+    },
+    {
+      "date": "2026-09-16",
+      "optiontype": "PE",
+      "clock_candidates": 372,
+      "missing_or_old_quote": 11,
+      "segment_change": 121,
+      "selected": 240
+    },
+    {
+      "date": "2026-09-17",
+      "optiontype": "CE",
+      "clock_candidates": 372,
+      "missing_or_old_quote": 4,
+      "segment_change": 87,
+      "selected": 281
+    },
+    {
+      "date": "2026-09-17",
+      "optiontype": "PE",
+      "clock_candidates": 372,
+      "missing_or_old_quote": 4,
+      "segment_change": 87,
+      "selected": 281
+    },
+    {
+      "date": "2026-09-18",
+      "optiontype": "CE",
+      "clock_candidates": 374,
+      "missing_or_old_quote": 4,
+      "segment_change": 85,
+      "selected": 285
+    },
+    {
+      "date": "2026-09-18",
+      "optiontype": "PE",
+      "clock_candidates": 374,
+      "missing_or_old_quote": 4,
+      "segment_change": 85,
+      "selected": 285
+    }
+  ],
+  "method": [
+    "One selected committed revision per day; both Parquet hashes and sizes rechecked locally.",
+    "One-to-one observation_id join; lagged exercise uses v2 application receipt provenance only.",
+    "Exact minute clock; past, present and future use last raw quote at or before clock-60s, clock and clock+60s, each no older than five seconds.",
+    "All three quotes must be in one continuous same-contract segment; break on date, contract switch or successive receipt gap above ten seconds.",
+    "Model values selected as of the present or past raw quote receipt, using max(iv_available_at, greeks_available_at), maximum calculation receipt age ten seconds and source quote age fifteen seconds. No backward filling.",
+    "Future target is percentage bid/ask midpoint change over about one minute; future intervals do not overlap within day and side.",
+    "Volume increment is the nonnegative difference of the provider total-volume counter within the same day and contract, retaining source units; a decrease makes the feature unavailable.",
+    "Pairwise complete Pearson and Spearman correlations separately for calls and puts, both pooled and by day; no model fitting, hypothesis tests, holdout evaluation or claims of prediction."
+  ],
+  "limitations": [
+    "Only seven v2 trading days, some incomplete; ATM-only data and segment filters select surviving contracts.",
+    "Requiring a future quote in the same segment conditions sample inclusion on future availability. This is a descriptive usable-window filter, not an implementable live eligibility rule.",
+    "Application receipts do not prove provider event freshness, simultaneity of market inputs, database persistence time or executable fills.",
+    "Consecutive intervals remain dependent and CE/PE share underlying data. These sample counts are not independent experiments.",
+    "Many features examined on the same small dataset; these correlations are exploratory and cannot select a proven signal.",
+    "Pooled feature-level associations may reflect differences between days. Ratio features sharing the current midpoint with the target can also have mechanical associations.",
+    "IV and Greeks are model estimates from prices; values use stored Black-76 with unverified spot/forward basis and zero-rate assumption.",
+    "No net-of-spread, brokerage or slippage performance test. Model-feature subsets have missing rows.",
+    "Volume is a source counter, not an independent event feed; differences do not identify buyer/seller initiation or volume units beyond the provider definition."
+  ]
+}

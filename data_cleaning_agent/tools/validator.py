@@ -63,6 +63,11 @@ def validate_tables(observations: pd.DataFrame, options: pd.DataFrame) -> Valida
         ("options", options, "theta", "finite"),
         ("options", options, "gamma", "nonnegative"),
         ("options", options, "vega", "nonnegative"),
+        ("options", options, "rho", "finite"),
+        ("options", options, "bid", "nonnegative"),
+        ("options", options, "ask", "nonnegative"),
+        ("options", options, "calculation_lag_ms", "nonnegative"),
+        ("options", options, "calculation_interest_rate", "finite"),
     )
     for label, frame, name, rule in numeric_rules:
         for value in frame[name].dropna():
@@ -83,9 +88,10 @@ def validate_tables(observations: pd.DataFrame, options: pd.DataFrame) -> Valida
 
     if not options["optiontype"].dropna().isin(["CE", "PE"]).all():
         errors.append("options.optiontype: expected CE or PE")
-    time_columns = (("observations", observations, "timestamps"),
-                    ("observations", observations, "provider_timestamp"),
-                    ("options", options, "timestamps"), ("options", options, "expirydate"))
+    time_columns = [(label, frame, name)
+                    for label, frame, schema in (("observations", observations, OBSERVATION_DTYPES),
+                                                 ("options", options, OPTION_DTYPES))
+                    for name, dtype in schema.items() if dtype.startswith("datetime64")]
     valid_time_types = True
     for label, frame, name in time_columns:
         if not isinstance(frame[name].dtype, pd.DatetimeTZDtype) or str(frame[name].dt.tz) != "UTC":
@@ -100,20 +106,46 @@ def validate_tables(observations: pd.DataFrame, options: pd.DataFrame) -> Valida
                 errors.append("options.daystoexpiry: inconsistent with timestamps and expirydate")
         except (ValueError, TypeError):
             errors.append("options.daystoexpiry: inconsistent numeric type")
+    else:
+        # Avoid comparing timezone-naive or non-temporal values below.
+        return ValidationResult(False, errors)
 
     greek_fields = ["delta", "theta", "gamma", "vega"]
     derived = options["derivation_status"].eq("derived").fillna(False)
-    if options.loc[derived, greek_fields].isna().any(axis=None):
+    stored = options["derivation_status"].isin(["stored_derived", "stored_partial"])
+    complete = derived | options["derivation_status"].eq("stored_derived").fillna(False)
+    if options.loc[complete, greek_fields].isna().any(axis=None):
         errors.append("options: derived Greeks must all be present")
-    if options.loc[~derived, greek_fields].notna().any(axis=None):
+    if options.loc[~(derived | stored), greek_fields].notna().any(axis=None):
         errors.append("options: unavailable Greeks must remain null")
     if not options.loc[derived, "greeks_source"].eq("black_scholes_european").all():
         errors.append("options: derived Greeks must identify black_scholes_european")
-    allowed_status = ["disabled", "missing_parameters", "missing_iv", "nonpositive_time", "derived"]
+    allowed_status = ["disabled", "missing_parameters", "missing_iv", "nonpositive_time", "derived",
+                      "stored_derived", "stored_partial", "missing_stored_derived", "ambiguous_stored_derived", "invalid_stored_derived"]
     if not options["derivation_status"].isin(allowed_status).all():
         errors.append("options: unknown derivation_status")
-    if not options.loc[~derived, "greeks_source"].eq("unavailable").all():
+    if not options.loc[~(derived | stored), "greeks_source"].eq("unavailable").all():
         errors.append("options: unavailable Greeks must identify unavailable source")
+    if not options.loc[stored, "greeks_source"].eq("OPENALGO_BLACK76").all():
+        errors.append("options: stored Greeks must identify their model")
+    if stored.any():
+        for name in ("greeks_available_at", "derived_received_at", "calculation_model", "derived_source_version"):
+            if options.loc[stored, name].isna().any():
+                errors.append(f"options.{name}: stored calculation provenance is required")
+        if options.loc[stored, "greeks_available_at"].lt(options.loc[stored, "timestamps"]).any():
+            errors.append("options: stored Greeks cannot be available before the raw observation")
+        if not options.loc[stored, "greeks_available_at"].eq(options.loc[stored, "derived_received_at"]).all():
+            errors.append("options: stored Greek availability must match calculation receipt time")
+        if not options.loc[stored, "calculation_model"].eq(options.loc[stored, "greeks_source"]).all():
+            errors.append("options: calculation model must match Greek source")
+        expected_lag = (options.loc[stored, "derived_received_at"] - options.loc[stored, "timestamps"]).dt.total_seconds() * 1000
+        supplied_lag = options.loc[stored, "calculation_lag_ms"]
+        if supplied_lag.isna().any() or ((expected_lag - supplied_lag).abs() > 1e-6).any():
+            errors.append("options: calculation lag must match receipt availability")
+        v2 = stored & options["derived_source_version"].eq(2).fillna(False)
+        for name in ("derived_receipt_id", "derived_parent_receipt_id"):
+            if options.loc[v2, name].isna().any() or not options.loc[v2, name].str.fullmatch(r"[0-9a-f]{64}").all():
+                errors.append(f"options.{name}: version 2 calculations require receipt identity")
 
     if not observations["observation_id"].duplicated().any() and not options["observation_id"].duplicated().any():
         shared = observations.merge(options, on="observation_id", suffixes=("_obs", "_opt"))
@@ -128,6 +160,20 @@ def validate_tables(observations: pd.DataFrame, options: pd.DataFrame) -> Valida
                 errors.append("tables: derived Greeks require supplied IV")
             if shared.loc[derived_shared, "daystoexpiry"].le(0).any():
                 errors.append("tables: derived Greeks require positive time to expiry")
+            stored_shared = shared["derivation_status"].isin(["stored_derived", "stored_partial"])
+            stored_complete = shared["derivation_status"].eq("stored_derived")
+            if not shared.loc[stored_shared, "derived_source_version"].astype("string").eq(shared.loc[stored_shared, "source_version"]).all():
+                errors.append("tables: stored calculation version must match RAW source version")
+            if shared.loc[stored_complete, "iv"].isna().any():
+                errors.append("tables: complete stored Greeks require IV")
+            with_iv = stored_shared & shared["iv"].notna()
+            if not shared.loc[with_iv, "iv_source"].eq("OPENALGO_BLACK76").all():
+                errors.append("tables: stored IV must identify its model")
+            if not shared.loc[with_iv, "iv_available_at"].eq(shared.loc[with_iv, "greeks_available_at"]).all():
+                errors.append("tables: stored IV and Greeks must share calculation availability")
+            v2 = stored_shared & shared["source_version"].eq("2").fillna(False)
+            if not shared.loc[v2, "derived_parent_receipt_id"].eq(shared.loc[v2, "source_receipt_id"]).all():
+                errors.append("tables: derived receipt must identify the RAW parent")
     natural_key = ["timestamps", "underlying", "symbol", "exchange", "strike", "optiontype", "expirydate"]
     if options.duplicated(natural_key).any():
         errors.append("options: repeated natural key")

@@ -1,0 +1,7 @@
+langgraph>=1.2.11,<2
+langgraph-checkpoint-sqlite>=3,<4
+pandas>=2.2,<3
+numpy>=1.26,<2.4
+pyarrow>=19,<24
+boto3>=1.40,<2
+pytest>=8,<10

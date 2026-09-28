@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102529">
+  <meta name="description" content="Explore historical Hermes market observations, research conditions, and integrity evidence.">
+  <title>Evidence research · Hermes</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to research</a>
+  <aside class="sidebar" aria-label="Workspace navigation">
+    <a class="brand" href="/" aria-label="Hermes Evidence home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>hermes<span class="brand-caption">RESEARCH WORKSPACE</span></span></a>
+    <div class="nav-heading">WORKSPACE</div>
+    <nav class="nav-links">
+      <a href="#overview" class="nav-link active"><span aria-hidden="true">◈</span> Evidence research</a>
+      <a href="#observations" class="nav-link"><span aria-hidden="true">▤</span> Observations</a>
+      <a href="#conditions" class="nav-link"><span aria-hidden="true">⌘</span> Frozen conditions</a>
+      <a href="#integrity" class="nav-link"><span aria-hidden="true">◇</span> Integrity checks</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="dataset-indicator"><span class="dot"></span> <span id="sidebar-source-label">SELECTED RUN DATASET</span></div>
+      <p id="sidebar-coverage">Checking saved coverage…</p>
+      <div class="sidebar-note">From observations<br>to inspectable evidence.</div>
+      <div class="workspace-version">HERMES / EVIDENCE ENGINE</div>
+    </div>
+  </aside>
+
+  <main id="main" class="main">
+    <div class="topbar"><span>WORKSPACE <span class="breadcrumb-slash">/</span> EVIDENCE</span><span class="environment"><span class="dot"></span> LOCAL RESEARCH</span></div>
+    <header class="page-header" id="overview">
+      <div><div class="eyebrow">OBSERVE. TEST. INSPECT.</div><h1>Evidence research<span class="heading-dot">.</span></h1><p class="page-subtitle">Explore the observations behind every condition.</p></div>
+      <div class="launch-action"><button type="button" id="start-run" class="button primary"><span aria-hidden="true">+</span> Start research run</button><span>Uses newest verified data</span></div>
+    </header>
+
+    <div id="global-alert" class="notice error" role="alert" hidden></div>
+    <section class="context-strip" aria-label="Research source and selected run">
+      <div class="source-context"><span class="source-icon" aria-hidden="true">▦</span><div><span class="context-label" id="source-coverage-label">SELECTED RUN DATASET</span><strong id="source-coverage">Loading historical dataset…</strong></div><span class="quiet-badge" id="source-status">CHECKING</span></div>
+      <div class="run-select-wrap"><label for="run-select">RESEARCH RUN</label><select id="run-select" aria-label="Select research run"><option value="">Loading runs…</option></select><button class="icon-button" id="refresh" type="button" title="Refresh research data" aria-label="Refresh research data">↻</button></div>
+    </section>
+
+    <section id="source-issues" class="source-issues" aria-label="Source catalog status" role="status" hidden><strong id="source-issues-title">Newest source data is unavailable</strong><p id="source-issues-summary"></p><ul id="source-issue-list"></ul></section>
+    <section id="newer-source-notice" class="newer-source-notice" aria-label="Newer source data available" hidden><div><strong>Newer verified sessions are available</strong><p id="newer-source-detail"></p></div><button type="button" id="start-latest-run" class="button secondary">Research newest data <span aria-hidden="true">↗</span></button></section>
+
+    <section id="job-banner" class="job-banner" aria-live="polite" hidden>
+      <div class="job-status-icon" aria-hidden="true">◌</div><div class="job-description"><strong id="job-title">Research in progress</strong><p id="job-message"></p></div><button type="button" id="resume-run" class="button secondary" hidden>Resume run</button>
+    </section>
+
+    <div id="empty-run" class="empty-state first-run" hidden><span class="empty-symbol" aria-hidden="true">◈</span><h2>Your evidence starts here</h2><p>Start a research run to align saved observations, discover conditions, and inspect the evidence behind them.</p><button type="button" class="button primary" id="start-first-run">Start research run</button></div>
+
+    <div id="research-content">
+      <section class="metrics" aria-label="Selected run summary">
+        <article class="metric-card"><div class="metric-label">ELIGIBLE OBSERVATIONS <span aria-hidden="true">↗</span></div><div class="metric-value" id="metric-observations">—</div><p id="metric-observations-note">Awaiting run evidence</p><div class="metric-rule teal"></div></article>
+        <article class="metric-card"><div class="metric-label">QUALIFYING EVENTS <span aria-hidden="true">⌁</span></div><div class="metric-value" id="metric-events">—</div><p id="metric-events-note">Awaiting saved target definition</p><div class="metric-rule blue"></div></article>
+        <article class="metric-card"><div class="metric-label">FROZEN CONDITIONS <span aria-hidden="true">⌘</span></div><div class="metric-value" id="metric-conditions">—</div><p id="metric-conditions-note">Discovery rules, held fixed for evaluation</p><div class="metric-rule sand"></div></article>
+        <article class="metric-card"><div class="metric-label">INTEGRITY QA <span aria-hidden="true">◇</span></div><div class="metric-value qa-value" id="metric-qa">—</div><p id="metric-qa-note">Source, timing, lineage, and replay checks</p><div class="metric-rule green"></div></article>
+      </section>
+
+      <section class="pipeline-panel" aria-label="Research pipeline"><div class="pipeline-heading"><span class="context-label">RESEARCH PIPELINE</span><span id="run-timestamp" class="subtle">Awaiting selection</span></div><ol class="pipeline" id="pipeline"></ol></section>
+
+      <section class="panel chart-panel" aria-labelledby="chart-title">
+        <div class="panel-heading"><div><div class="section-kicker">THE UNDERLYING STORY</div><h2 id="chart-title">Spot observations</h2><p>NIFTY · application receipt times (IST)</p></div><div class="chart-controls"><div class="legend"><span class="legend-dot"></span> Spot <span class="legend-dot event-dot"></span> Qualifying window</div><label class="sr-only" for="chart-date">Chart session</label><select id="chart-date"></select></div></div>
+        <div class="chart-area" id="chart-area"><svg id="spot-chart" role="img" aria-label="Historical spot observations" viewBox="0 0 1100 240" preserveAspectRatio="none"></svg><div class="chart-tooltip" id="chart-tooltip" hidden></div><div id="chart-empty" class="chart-empty">Loading saved observations…</div></div>
+        <div class="chart-footer"><span id="chart-summary">Historical observations from the selected run</span><span>Endpoint moves · unknown windows excluded from events</span></div>
+      </section>
+
+      <section class="panel explorer-panel" id="observations" aria-labelledby="explorer-title">
+        <div class="panel-heading"><div><div class="section-kicker">FOLLOW THE EVIDENCE</div><h2 id="explorer-title">Observation explorer</h2></div><span class="table-count" id="table-total">— records</span></div>
+        <div class="tabs" role="tablist" aria-label="Evidence tables"><button type="button" id="tab-observations" class="tab active" role="tab" aria-selected="true" aria-controls="table-panel" data-kind="observations">Observations</button><button type="button" id="tab-events" class="tab" role="tab" aria-selected="false" aria-controls="table-panel" tabindex="-1" data-kind="events">Events</button><button type="button" id="tab-samples" class="tab" role="tab" aria-selected="false" aria-controls="table-panel" tabindex="-1" data-kind="samples">All windows</button><button type="button" id="tab-occurrences" class="tab" role="tab" aria-selected="false" aria-controls="table-panel" tabindex="-1" data-kind="occurrences">Condition matches</button></div>
+        <div class="filters"><label class="search-field"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search observation or contract…" aria-label="Search observation or contract"></label><label class="filter-field"><span>Session</span><select id="filter-date" aria-label="Filter by session"><option value="">All sessions</option></select></label><label class="filter-field" id="side-filter-wrap"><span>Side</span><select id="filter-side" aria-label="Filter option side"><option value="">CE + PE</option><option value="CE">CE</option><option value="PE">PE</option></select></label><label class="filter-field" id="label-filter-wrap" hidden><span>Outcome</span><select id="filter-label" aria-label="Filter event outcome"><option value="">All outcomes</option><option value="UP_MOMENTUM">Up ≥50 points</option><option value="DOWN_MOMENTUM">Down ≥50 points</option><option value="UP_50_80">Up 50–80 (legacy)</option><option value="DOWN_50_80">Down 50–80 (legacy)</option><option value="UP_OVER_80">Up over 80 (legacy)</option><option value="DOWN_OVER_80">Down over 80 (legacy)</option><option value="OTHER">Other</option><option value="UNKNOWN">Unknown</option></select></label><label class="filter-field" id="condition-filter-wrap" hidden><span>Condition</span><select id="filter-condition" aria-label="Filter condition"><option value="">All conditions</option></select></label></div>
+        <p id="explorer-note" class="explorer-note">Saved contract observations with their receipt times and source identity.</p>
+        <div id="table-panel" role="tabpanel" aria-labelledby="tab-observations" tabindex="0"><div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable evidence table"><table id="evidence-table"><caption class="sr-only">Historical evidence rows. All times shown in India Standard Time.</caption><thead id="table-head"></thead><tbody id="table-body"></tbody></table></div><div class="table-empty" id="table-empty" role="status">Loading evidence…</div></div>
+        <div class="table-footer"><span id="page-summary">—</span><span class="table-time-note">Times in IST · — means unavailable</span><div class="pagination"><button class="icon-button" id="page-prev" type="button" aria-label="Previous page" disabled>←</button><span id="page-number">1</span><button class="icon-button" id="page-next" type="button" aria-label="Next page" disabled>→</button></div></div>
+      </section>
+
+      <section class="panel conditions-panel" id="conditions" aria-labelledby="conditions-title"><div class="panel-heading"><div><div class="section-kicker">DISCOVER ONCE. EVALUATE SEPARATELY.</div><h2 id="conditions-title">Frozen conditions</h2><p>Known outcome rates are shown against the feature-eligible baseline. Unknowns remain separate.</p></div><span class="quiet-badge">EXPLORATORY</span></div><div class="research-definition"><div class="research-definition-header"><span class="badge" id="research-mode">SAVED RESEARCH</span><strong id="research-target">Awaiting target definition</strong></div><p id="research-interpretation"></p><span id="research-versions"></span></div><div class="partition-note" id="partition-note">Chronological discovery and evaluation partitions</div><div class="condition-grid" id="condition-list"></div></section>
+
+      <section class="assurance-grid" id="integrity"><article class="panel assurance-panel"><div class="panel-heading"><div><div class="section-kicker">TRACEABLE BY DESIGN</div><h2>Integrity checks</h2></div><span class="badge" id="qa-badge">PENDING</span></div><p class="assurance-copy" id="integrity-reason">Checks verify the saved research artifacts and their source lineage.</p><div id="qa-checks"></div></article><article class="panel assurance-panel publication-panel"><div class="panel-heading"><div><div class="section-kicker">SAVED EVIDENCE</div><h2>Publication</h2></div><span class="publication-icon" aria-hidden="true">↥</span></div><div id="publication-status" class="publication-status">Awaiting selection</div><p id="publication-detail" class="assurance-copy">Run artifacts are stored locally. S3 publication is optional.</p><div id="publication-uri" class="publication-uri" hidden></div><div class="research-note"><span aria-hidden="true">ⓘ</span><p>Integrity checks assess reproducibility. These results do not establish forecasting value.</p></div></article></section>
+    </div>
+    <footer class="page-footer"><span>Historical research · application receipt times · exploratory evidence</span><span>HERMES <span class="footer-slash">/</span> EVIDENCE</span></footer>
+  </main>
+
+  <dialog id="run-dialog" aria-labelledby="dialog-title"><form id="run-form"><div class="dialog-topline"><span class="section-kicker">NEW RESEARCH RUN</span><button type="button" class="icon-button" id="close-dialog" aria-label="Close run settings">×</button></div><h2 id="dialog-title">Turn observations into evidence.</h2><p class="dialog-description">Activate joint CE + PE + IV research on the newest verified historical dataset. Every rule combines call and put observations with both IV values, all available before the same cutoff.</p><div class="form-source"><span class="context-label">NEWEST VERIFIED SOURCE DATASET</span><strong id="dialog-source">Loading source…</strong></div><div class="run-target"><strong>Target: upward or downward movement of at least 50 spot points in 5 minutes.</strong><span>No upper cap. Missing outcomes remain unknown.</span></div><label class="form-field" for="discovery-end">Discovery cutoff <span class="optional">Optional</span><input id="discovery-end" name="discovery_end" type="date"><small>Leave blank to use the first 60% of whole sessions for discovery.</small></label><div class="form-grid"><label class="form-field" for="min-support">Minimum support<input id="min-support" name="min_support" type="number" min="1" max="100000" value="5" required><small>Known discovery matches per rule</small></label><label class="form-field" for="max-conditions">Maximum conditions<input id="max-conditions" name="max_conditions" type="number" min="1" max="24" value="6" required><small>Rules frozen for evaluation</small></label></div><label class="checkbox-label"><input id="publish-s3" name="publish_to_s3" type="checkbox"><span><strong>Publish successful run to S3</strong><small id="publish-label">Upload to heremesv0-cleaned-data/evidence-engine after QA passes.</small></span></label><div id="run-form-error" class="notice error" role="alert" hidden></div><div class="dialog-footer"><span>Newest verified data · joint conditions</span><button class="button primary" type="submit" id="submit-run">Start research run <span aria-hidden="true">→</span></button></div></form></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

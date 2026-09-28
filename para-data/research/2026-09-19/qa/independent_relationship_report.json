@@ -1,0 +1,625 @@
+{
+  "source_report": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/runtime/enrichment_verification_2026-09-19.json",
+  "source_rows": 61056,
+  "verified_files": [
+    {
+      "date": "2026-09-07",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-07/fe0bd632-d4b9-4dae-9410-8c6a9291ecb0/observations.parquet",
+      "sha256": "488872390bd1dac7f6623d4ec3bc2d16efe2cf32f3de22d00cac5e2d2c0744a1"
+    },
+    {
+      "date": "2026-09-07",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-07/fe0bd632-d4b9-4dae-9410-8c6a9291ecb0/options.parquet",
+      "sha256": "3ec4fde1ad24e1c17e7f11b01d6a1b30a314320bd182acadf4205653f3c8a03d"
+    },
+    {
+      "date": "2026-09-08",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-08/65ae7493-16fe-43b5-8497-ae985f9913a5/observations.parquet",
+      "sha256": "7c4b300d444ac52107e3b2067cf2153d5a3fef087b63ce9066bbefd1b70dc702"
+    },
+    {
+      "date": "2026-09-08",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-08/65ae7493-16fe-43b5-8497-ae985f9913a5/options.parquet",
+      "sha256": "65c4e6e5a05b9adf6150033b7cd7a410f5f49dbcbeef819e3364f9a21c7e8c8b"
+    },
+    {
+      "date": "2026-09-09",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-09/8dbaa35d-26bc-4a4f-978b-2e400f1a8ea7/observations.parquet",
+      "sha256": "e04918d6703a2773a67dfe50b1c6a3fc2e99fce04f7c3b8d2c5e30240076f83f"
+    },
+    {
+      "date": "2026-09-09",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-09/8dbaa35d-26bc-4a4f-978b-2e400f1a8ea7/options.parquet",
+      "sha256": "22798d2b59a79272bfd64f204688498c964df572c298694019279a76184f5a92"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-10/2f388184-9968-49ed-aeed-d00bd5f913ba/observations.parquet",
+      "sha256": "87744fda07a1ad3ff9ae711e42e5b544f6a479ae3c44faeb98b5c7fd96b76283"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-10/2f388184-9968-49ed-aeed-d00bd5f913ba/options.parquet",
+      "sha256": "296eb1c1418f309db5e21d7940afdd6d2b6e8e05882ba46edd3c18ec199591ef"
+    },
+    {
+      "date": "2026-09-11",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-11/40cf6a4f-1546-437b-a615-ccbed81c72d2/observations.parquet",
+      "sha256": "31f52bc694301f267c20f967edc6b23da6235b2598c9331f833d4ba2fb284960"
+    },
+    {
+      "date": "2026-09-11",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-11/40cf6a4f-1546-437b-a615-ccbed81c72d2/options.parquet",
+      "sha256": "6257ce7ee1425affa12e2c59ab43da2f188483cb044ec297d61fc096abcfe4e6"
+    },
+    {
+      "date": "2026-09-15",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-15/6d355d52-4468-4a02-b61d-bd64008397e0/observations.parquet",
+      "sha256": "da94e81ea43ac58b5c1e927f8aff7a533b51433db46597e19c0e589b73c90f83"
+    },
+    {
+      "date": "2026-09-15",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-15/6d355d52-4468-4a02-b61d-bd64008397e0/options.parquet",
+      "sha256": "21e6a6b1b3b7abef2faa74cc6b5d3a3ede2096f17d7c07b5f7a3fd40d5008ad8"
+    },
+    {
+      "date": "2026-09-16",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-16/f5f9eb70-6130-4c9e-ae51-81bbfa92f0dc/observations.parquet",
+      "sha256": "952df1fbba8c6409d07bc2288faba8535417489126c2b6b93795fffc14f19fac"
+    },
+    {
+      "date": "2026-09-16",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-16/f5f9eb70-6130-4c9e-ae51-81bbfa92f0dc/options.parquet",
+      "sha256": "ba566b67a4cca360430b2098ed2b13e289813d087b8518098d2258d89d5699ed"
+    },
+    {
+      "date": "2026-09-17",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-17/455fb0d9-f6ed-40ab-9eaf-a46803ad4578/observations.parquet",
+      "sha256": "567018df4087a02c0e0c47233bee3ff2929632e9cc8f0fce66008cb67454eab6"
+    },
+    {
+      "date": "2026-09-17",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-17/455fb0d9-f6ed-40ab-9eaf-a46803ad4578/options.parquet",
+      "sha256": "62eaaeb1b624efa9de2c761e29828029acf29acdc9a45f569491f603b4d8c55f"
+    },
+    {
+      "date": "2026-09-18",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-18/6d204888-504c-470c-97fb-d68b0a225900/observations.parquet",
+      "sha256": "4cf6744bae5eff010c0a4039e8c566ef5d333d14ad43ab6c2d994edd9d851256"
+    },
+    {
+      "date": "2026-09-18",
+      "file": "/Users/viswatej/Desktop/openalgo/data_cleaning_agent/output/postgres/2026-09-18/6d204888-504c-470c-97fb-d68b0a225900/options.parquet",
+      "sha256": "54bf4c25eee65d3f471aa6cd755ff93b134449683989eba6923aa7a59e0855b3"
+    }
+  ],
+  "method": "Contemporaneous spot point change versus same-contract bid/ask midpoint point change. Last quote at or before each IST minute boundary, no older than 5 seconds. Start is last quote at or before end minus 60 seconds, at most 65 seconds old. Segments break on date, contract switch, or successive quote gap greater than 10 seconds. Greedy selection rejects intervals overlapping a previously selected interval for the same day and option side.",
+  "sample_windows": 2746,
+  "stats": [
+    {
+      "date": "2026-09-07",
+      "optiontype": "CE",
+      "n": 61,
+      "pearson": 0.4042160893319469,
+      "spearman": 0.6090095387482082,
+      "ltp_pearson": 0.3984472993041981,
+      "seconds_median": 60.0,
+      "seconds_min": 60.0,
+      "seconds_max": 60.0,
+      "zero_spot_change": 13,
+      "zero_midpoint_change": 0,
+      "unique_contracts": 2
+    },
+    {
+      "date": "2026-09-07",
+      "optiontype": "PE",
+      "n": 61,
+      "pearson": -0.44593941723372504,
+      "spearman": -0.6361161840325842,
+      "ltp_pearson": -0.4801599738982117,
+      "seconds_median": 60.0,
+      "seconds_min": 60.0,
+      "seconds_max": 60.0,
+      "zero_spot_change": 13,
+      "zero_midpoint_change": 0,
+      "unique_contracts": 2
+    },
+    {
+      "date": "2026-09-08",
+      "optiontype": "CE",
+      "n": 48,
+      "pearson": 0.8371894967377798,
+      "spearman": 0.8293027196832762,
+      "ltp_pearson": 0.828082243944978,
+      "seconds_median": 60.0,
+      "seconds_min": 60.0,
+      "seconds_max": 60.0,
+      "zero_spot_change": 0,
+      "zero_midpoint_change": 1,
+      "unique_contracts": 2
+    },
+    {
+      "date": "2026-09-08",
+      "optiontype": "PE",
+      "n": 48,
+      "pearson": -0.887165173999647,
+      "spearman": -0.8546303383337133,
+      "ltp_pearson": -0.8683911700955931,
+      "seconds_median": 60.0,
+      "seconds_min": 60.0,
+      "seconds_max": 60.0,
+      "zero_spot_change": 0,
+      "zero_midpoint_change": 0,
+      "unique_contracts": 2
+    },
+    {
+      "date": "2026-09-09",
+      "optiontype": "CE",
+      "n": 184,
+      "pearson": 0.8028596718661782,
+      "spearman": 0.8035306889038483,
+      "ltp_pearson": 0.7947147813742124,
+      "seconds_median": 60.062372999999994,
+      "seconds_min": 60.000469,
+      "seconds_max": 64.991192,
+      "zero_spot_change": 7,
+      "zero_midpoint_change": 0,
+      "unique_contracts": 3
+    },
+    {
+      "date": "2026-09-09",
+      "optiontype": "PE",
+      "n": 184,
+      "pearson": -0.7941529191579115,
+      "spearman": -0.7836386198640818,
+      "ltp_pearson": -0.7889551824714262,
+      "seconds_median": 60.062372999999994,
+      "seconds_min": 60.000469,
+      "seconds_max": 64.991192,
+      "zero_spot_change": 7,
+      "zero_midpoint_change": 0,
+      "unique_contracts": 3
+    },
+    {
+      "date": "2026-09-10",
+      "optiontype": "CE",
+      "n": 198,
+      "pearson": 0.8753151074683759,
+      "spearman": 0.8618986065009193,
+      "ltp_pearson": 0.8740544457730408,
+      "seconds_median": 60.023590999999996,
+      "seconds_min": 60.000038,
+      "seconds_max": 64.999593,
+      "zero_spot_change": 9,
+      "zero_midpoint_change": 1,
+      "unique_contracts": 2
+    },
+    {
+      "date": "2026-09-10",
+      "optiontype": "PE",
+      "n": 198,
+      "pearson": -0.8327545862782465,
+      "spearman": -0.8513925530900098,
+      "ltp_pearson": -0.8323693774691672,
+      "seconds_median": 60.023590999999996,
+      "seconds_min": 60.000038,
+      "seconds_max": 64.999593,
+      "zero_spot_change": 9,
+      "zero_midpoint_change": 3,
+      "unique_contracts": 2
+    },
+    {
+      "date": "2026-09-11",
+      "optiontype": "CE",
+      "n": 204,
+      "pearson": 0.8471920423830499,
+      "spearman": 0.8637835870714402,
+      "ltp_pearson": 0.8463093394954018,
+      "seconds_median": 60.01041,
+      "seconds_min": 60.00005,
+      "seconds_max": 64.998733,
+      "zero_spot_change": 8,
+      "zero_midpoint_change": 2,
+      "unique_contracts": 5
+    },
+    {
+      "date": "2026-09-11",
+      "optiontype": "PE",
+      "n": 204,
+      "pearson": -0.8320473259803789,
+      "spearman": -0.8573586329221108,
+      "ltp_pearson": -0.8277023109465109,
+      "seconds_median": 60.01041,
+      "seconds_min": 60.00005,
+      "seconds_max": 64.998733,
+      "zero_spot_change": 8,
+      "zero_midpoint_change": 0,
+      "unique_contracts": 5
+    },
+    {
+      "date": "2026-09-15",
+      "optiontype": "CE",
+      "n": 109,
+      "pearson": 0.9034973136631677,
+      "spearman": 0.8991900170445505,
+      "ltp_pearson": 0.8961174018662211,
+      "seconds_median": 60.009964,
+      "seconds_min": 60.000074,
+      "seconds_max": 64.998045,
+      "zero_spot_change": 2,
+      "zero_midpoint_change": 0,
+      "unique_contracts": 4
+    },
+    {
+      "date": "2026-09-15",
+      "optiontype": "PE",
+      "n": 109,
+      "pearson": -0.9266950957182709,
+      "spearman": -0.9211353689754567,
+      "ltp_pearson": -0.9155592435268528,
+      "seconds_median": 60.009964,
+      "seconds_min": 60.000074,
+      "seconds_max": 64.998045,
+      "zero_spot_change": 2,
+      "zero_midpoint_change": 0,
+      "unique_contracts": 4
+    },
+    {
+      "date": "2026-09-16",
+      "optiontype": "CE",
+      "n": 187,
+      "pearson": 0.9147576025763748,
+      "spearman": 0.8817561511610198,
+      "ltp_pearson": 0.9118168840284575,
+      "seconds_median": 60.025464,
+      "seconds_min": 60.000054,
+      "seconds_max": 64.999417,
+      "zero_spot_change": 9,
+      "zero_midpoint_change": 2,
+      "unique_contracts": 3
+    },
+    {
+      "date": "2026-09-16",
+      "optiontype": "PE",
+      "n": 187,
+      "pearson": -0.9168159267105184,
+      "spearman": -0.8925552395906705,
+      "ltp_pearson": -0.9092581085358274,
+      "seconds_median": 60.025464,
+      "seconds_min": 60.000054,
+      "seconds_max": 64.999417,
+      "zero_spot_change": 9,
+      "zero_midpoint_change": 0,
+      "unique_contracts": 3
+    },
+    {
+      "date": "2026-09-17",
+      "optiontype": "CE",
+      "n": 184,
+      "pearson": 0.8807013159203797,
+      "spearman": 0.8174754912039347,
+      "ltp_pearson": 0.8677070600220352,
+      "seconds_median": 60.0186525,
+      "seconds_min": 60.000042,
+      "seconds_max": 64.998551,
+      "zero_spot_change": 11,
+      "zero_midpoint_change": 1,
+      "unique_contracts": 4
+    },
+    {
+      "date": "2026-09-17",
+      "optiontype": "PE",
+      "n": 184,
+      "pearson": -0.8890488672709309,
+      "spearman": -0.8256259709729556,
+      "ltp_pearson": -0.8813650666453315,
+      "seconds_median": 60.0186525,
+      "seconds_min": 60.000042,
+      "seconds_max": 64.998551,
+      "zero_spot_change": 11,
+      "zero_midpoint_change": 1,
+      "unique_contracts": 4
+    },
+    {
+      "date": "2026-09-18",
+      "optiontype": "CE",
+      "n": 198,
+      "pearson": 0.821588765134034,
+      "spearman": 0.8258976096763726,
+      "ltp_pearson": 0.8159684429348751,
+      "seconds_median": 60.016442999999995,
+      "seconds_min": 60.0001,
+      "seconds_max": 64.999306,
+      "zero_spot_change": 10,
+      "zero_midpoint_change": 0,
+      "unique_contracts": 3
+    },
+    {
+      "date": "2026-09-18",
+      "optiontype": "PE",
+      "n": 198,
+      "pearson": -0.8292123323722588,
+      "spearman": -0.8305643923539555,
+      "ltp_pearson": -0.8272414809278121,
+      "seconds_median": 60.016442999999995,
+      "seconds_min": 60.0001,
+      "seconds_max": 64.999306,
+      "zero_spot_change": 10,
+      "zero_midpoint_change": 2,
+      "unique_contracts": 3
+    },
+    {
+      "date": "POOLED",
+      "optiontype": "CE",
+      "n": 1373,
+      "pearson": 0.8466546215927253,
+      "spearman": 0.8416359012135662,
+      "ltp_pearson": 0.8405260915620942,
+      "seconds_median": 60.015825,
+      "seconds_min": 60.0,
+      "seconds_max": 64.999593,
+      "zero_spot_change": 69,
+      "zero_midpoint_change": 7,
+      "unique_contracts": 17
+    },
+    {
+      "date": "POOLED",
+      "optiontype": "PE",
+      "n": 1373,
+      "pearson": -0.8607015029043643,
+      "spearman": -0.845461668922944,
+      "ltp_pearson": -0.8553647191842042,
+      "seconds_median": 60.015825,
+      "seconds_min": 60.0,
+      "seconds_max": 64.999593,
+      "zero_spot_change": 69,
+      "zero_midpoint_change": 6,
+      "unique_contracts": 17
+    }
+  ],
+  "filter_counts": [
+    {
+      "date": "2026-09-07",
+      "optiontype": "CE",
+      "source_rows": 930,
+      "segments": 38,
+      "clock_endpoints": 100,
+      "end_too_old": 22,
+      "no_start_within_65s": 3,
+      "segment_changed": 13,
+      "overlap_excluded": 1,
+      "selected": 61
+    },
+    {
+      "date": "2026-09-07",
+      "optiontype": "PE",
+      "source_rows": 930,
+      "segments": 38,
+      "clock_endpoints": 100,
+      "end_too_old": 22,
+      "no_start_within_65s": 3,
+      "segment_changed": 13,
+      "overlap_excluded": 1,
+      "selected": 61
+    },
+    {
+      "date": "2026-09-08",
+      "optiontype": "CE",
+      "source_rows": 811,
+      "segments": 40,
+      "clock_endpoints": 72,
+      "end_too_old": 3,
+      "no_start_within_65s": 2,
+      "segment_changed": 18,
+      "overlap_excluded": 1,
+      "selected": 48
+    },
+    {
+      "date": "2026-09-08",
+      "optiontype": "PE",
+      "source_rows": 811,
+      "segments": 40,
+      "clock_endpoints": 72,
+      "end_too_old": 3,
+      "no_start_within_65s": 2,
+      "segment_changed": 18,
+      "overlap_excluded": 1,
+      "selected": 48
+    },
+    {
+      "date": "2026-09-09",
+      "optiontype": "CE",
+      "source_rows": 4032,
+      "segments": 76,
+      "clock_endpoints": 375,
+      "end_too_old": 40,
+      "no_start_within_65s": 57,
+      "segment_changed": 30,
+      "overlap_excluded": 64,
+      "selected": 184
+    },
+    {
+      "date": "2026-09-09",
+      "optiontype": "PE",
+      "source_rows": 4032,
+      "segments": 76,
+      "clock_endpoints": 375,
+      "end_too_old": 40,
+      "no_start_within_65s": 57,
+      "segment_changed": 30,
+      "overlap_excluded": 64,
+      "selected": 184
+    },
+    {
+      "date": "2026-09-10",
+      "optiontype": "CE",
+      "source_rows": 4474,
+      "segments": 109,
+      "clock_endpoints": 375,
+      "end_too_old": 3,
+      "no_start_within_65s": 62,
+      "segment_changed": 48,
+      "overlap_excluded": 64,
+      "selected": 198
+    },
+    {
+      "date": "2026-09-10",
+      "optiontype": "PE",
+      "source_rows": 4474,
+      "segments": 109,
+      "clock_endpoints": 375,
+      "end_too_old": 3,
+      "no_start_within_65s": 62,
+      "segment_changed": 48,
+      "overlap_excluded": 64,
+      "selected": 198
+    },
+    {
+      "date": "2026-09-11",
+      "optiontype": "CE",
+      "source_rows": 4474,
+      "segments": 115,
+      "clock_endpoints": 375,
+      "end_too_old": 3,
+      "no_start_within_65s": 67,
+      "segment_changed": 44,
+      "overlap_excluded": 57,
+      "selected": 204
+    },
+    {
+      "date": "2026-09-11",
+      "optiontype": "PE",
+      "source_rows": 4474,
+      "segments": 115,
+      "clock_endpoints": 375,
+      "end_too_old": 3,
+      "no_start_within_65s": 67,
+      "segment_changed": 44,
+      "overlap_excluded": 57,
+      "selected": 204
+    },
+    {
+      "date": "2026-09-15",
+      "optiontype": "CE",
+      "source_rows": 2493,
+      "segments": 82,
+      "clock_endpoints": 211,
+      "end_too_old": 3,
+      "no_start_within_65s": 35,
+      "segment_changed": 31,
+      "overlap_excluded": 33,
+      "selected": 109
+    },
+    {
+      "date": "2026-09-15",
+      "optiontype": "PE",
+      "source_rows": 2493,
+      "segments": 82,
+      "clock_endpoints": 211,
+      "end_too_old": 3,
+      "no_start_within_65s": 35,
+      "segment_changed": 31,
+      "overlap_excluded": 33,
+      "selected": 109
+    },
+    {
+      "date": "2026-09-16",
+      "optiontype": "CE",
+      "source_rows": 4396,
+      "segments": 146,
+      "clock_endpoints": 373,
+      "end_too_old": 6,
+      "no_start_within_65s": 55,
+      "segment_changed": 68,
+      "overlap_excluded": 57,
+      "selected": 187
+    },
+    {
+      "date": "2026-09-16",
+      "optiontype": "PE",
+      "source_rows": 4396,
+      "segments": 146,
+      "clock_endpoints": 373,
+      "end_too_old": 6,
+      "no_start_within_65s": 55,
+      "segment_changed": 68,
+      "overlap_excluded": 57,
+      "selected": 187
+    },
+    {
+      "date": "2026-09-17",
+      "optiontype": "CE",
+      "source_rows": 4430,
+      "segments": 110,
+      "clock_endpoints": 373,
+      "end_too_old": 1,
+      "no_start_within_65s": 113,
+      "segment_changed": 39,
+      "overlap_excluded": 36,
+      "selected": 184
+    },
+    {
+      "date": "2026-09-17",
+      "optiontype": "PE",
+      "source_rows": 4430,
+      "segments": 110,
+      "clock_endpoints": 373,
+      "end_too_old": 1,
+      "no_start_within_65s": 113,
+      "segment_changed": 39,
+      "overlap_excluded": 36,
+      "selected": 184
+    },
+    {
+      "date": "2026-09-18",
+      "optiontype": "CE",
+      "source_rows": 4488,
+      "segments": 138,
+      "clock_endpoints": 375,
+      "end_too_old": 1,
+      "no_start_within_65s": 60,
+      "segment_changed": 54,
+      "overlap_excluded": 62,
+      "selected": 198
+    },
+    {
+      "date": "2026-09-18",
+      "optiontype": "PE",
+      "source_rows": 4488,
+      "segments": 138,
+      "clock_endpoints": 375,
+      "end_too_old": 1,
+      "no_start_within_65s": 60,
+      "segment_changed": 54,
+      "overlap_excluded": 62,
+      "selected": 198
+    }
+  ],
+  "limitations": [
+    "Descriptive contemporaneous association, not prediction or causality.",
+    "Only nine trading days, several incomplete; no significance or independence claim.",
+    "ATM contract switching excludes transition windows and selects persistent contracts.",
+    "Stored timestamps are application receipt time or unverified legacy time, not verified exchange event time.",
+    "Midpoint is a quote-based summary, not an executable or last-traded price.",
+    "CE and PE share underlying observations; do not treat their pooled counts as independent.",
+    "Nonoverlapping windows remain temporally dependent; minute-clock selection and 60\u201365 second matching can reject endpoints due to receipt jitter."
+  ],
+  "v2_only_sensitivity": [
+    {
+      "optiontype": "CE",
+      "n": 1264,
+      "pearson": 0.8680002734227942,
+      "spearman": 0.850643527068083
+    },
+    {
+      "optiontype": "PE",
+      "n": 1264,
+      "pearson": -0.8693120471279819,
+      "spearman": -0.851954308157432
+    }
+  ],
+  "cross_checks": {
+    "ce_pe_same_underlying_intervals": true,
+    "nonoverlap_verified_from_exported_samples": true
+  }
+}

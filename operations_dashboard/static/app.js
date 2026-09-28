@@ -81,7 +81,10 @@ function renderMetrics(data) {
   const selectedGate = data.calendar.selected_day;
   write("selected-description", dateText(day.date, {weekday:"long", year:"numeric"}) + " · " + niceStatus(selectedGate.status).toLowerCase() + " session · " + (day.status === "PUBLISHED" ? "published to S3" : niceStatus(day.status).toLowerCase()));
   write("quality-note", "A cleaning PASS validates the rows received. " + (expected ? number(expected - captured) + " of " + number(expected) + " expected receipt slots are missing on this date. " : "Receipt coverage must be checked separately. ") + "Provider event time remains unverified.");
-  write("iv-note", day.greeks_enabled === false ? "Raw IV is unavailable in this PostgreSQL flow. IV and Greeks remain null; days to expiry is calculated." : (day.iv_provenance || "Missing values remain null. Derived values require explicit model assumptions."));
+  const coverage = day.feature_completeness;
+  write("iv-note", coverage && Number.isInteger(coverage.iv_and_greeks_complete_rows)
+    ? `IV and Greeks available for ${coverage.iv_and_greeks_complete_rows.toLocaleString()} of ${coverage.rows.toLocaleString()} rows. Stored calculations retain their own availability time and model assumptions; unavailable values stay null.`
+    : day.greeks_enabled === false ? "This export has no stored analytics enrichment. IV and Greeks may be missing; days to expiry is calculated." : (day.iv_provenance || "Missing values remain null. Derived values require explicit model assumptions."));
   link("aws-link", day.s3_console_url);
 }
 
@@ -126,7 +129,7 @@ function renderPreview() {
   const head = $("preview-head"), body = $("preview-body"); head.replaceChildren(); body.replaceChildren();
   $("preview-empty").hidden = Boolean(table && table.rows.length);
   write("preview-empty", preview ? preview.reason || "No rows are available for this date." : "Loading local Parquet preview…");
-  write("preview-description", selectedTable === "observations" ? "Timestamps, spot, supplied IV and volume, with source provenance." : "Raw OI, LTP and contract fields, plus days to expiry and optional model Greeks.");
+  write("preview-description", selectedTable === "observations" ? "Timestamps, spot, sourced IV and volume. CSV downloads include readable dates and IV availability time." : "Raw OI, LTP and contract fields, plus stored model Greeks. CSV downloads preserve calculation availability and missing-value reasons.");
   document.querySelectorAll(".tab").forEach(tab => { const active = tab.dataset.table === selectedTable; tab.classList.toggle("active", active); tab.setAttribute("aria-selected", String(active)); });
   if (!table) { write("preview-summary", preview ? "Local cleaned Parquet preview unavailable" : "Loading local Parquet preview…"); return; }
   const header = element("tr"); table.columns.forEach(column => header.append(element("th", "", column === "timestamps" ? "timestamps (IST)" : column.replaceAll("_", " ")))); head.append(header);

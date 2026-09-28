@@ -203,6 +203,8 @@ class DashboardStore:
             "integrity_passed": context.get("integrity_passed"),
             "planner": manifest.get("planner"),
             "greeks_enabled": manifest.get("settings", {}).get("derive_greeks"),
+            "feature_completeness": pick(manifest.get("feature_completeness", {}),
+                                         ("rows", "iv_and_greeks_complete_rows", "iv_and_greeks_missing_rows", "analytics_coverage")),
             "timestamp_provenance": context.get("timestamp_provenance"),
             "iv_provenance": context.get("iv_provenance"),
             "created_at": manifest.get("created_at"),

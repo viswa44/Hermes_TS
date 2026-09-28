@@ -61,11 +61,39 @@ class MemoryS3:
         return {"ETag": '"fake"'}
 
 
+class HeadChecksumS3(MemoryS3):
+    def __init__(self):
+        super().__init__()
+        self.heads = []
+        self.checksum_available = True
+        self.checksum_type = "FULL_OBJECT"
+        self.head_error = None
+
+    def head_object(self, **kwargs):
+        self.heads.append(kwargs)
+        assert kwargs["ChecksumMode"] == "ENABLED"
+        if self.head_error:
+            raise self.head_error
+        key = kwargs["Key"]
+        if key not in self.objects:
+            raise aws_error("NoSuchKey", 404)
+        payload = self.objects[key]
+        response = {"ContentLength": len(payload)}
+        if self.checksum_available:
+            response.update(
+                ChecksumSHA256=base64.b64encode(hashlib.sha256(payload).digest()).decode("ascii"),
+                ChecksumType=self.checksum_type,
+            )
+        return response
+
+
 def make_run(tmp_path: Path) -> Path:
     directory = tmp_path / str(uuid4())
     directory.mkdir()
     (directory / "observations.parquet").write_bytes(b"example observations")
     (directory / "options.parquet").write_bytes(b"example options")
+    (directory / "observations.csv").write_text("observation_id,timestamps\nexample,2026-09-18T03:45:05.902530Z\n")
+    (directory / "options.csv").write_text("observation_id,expirydate\nexample,2026-09-22T10:00:00Z\n")
     (directory / "quality_report.json").write_text(json.dumps({"passed": True, "accepted_rows": 3}))
     (directory / "source.csv").write_text("local raw evidence")
     manifest = {
@@ -77,7 +105,7 @@ def make_run(tmp_path: Path) -> Path:
         "table_counts": {"observations.parquet": 3, "options.parquet": 3},
         "artifacts": {
             name: {"sha256": hashlib.sha256((directory / name).read_bytes()).hexdigest(), "size_bytes": (directory / name).stat().st_size}
-            for name in ("observations.parquet", "options.parquet", "quality_report.json", "source.csv")
+            for name in ("observations.parquet", "options.parquet", "observations.csv", "options.csv", "quality_report.json", "source.csv")
         },
     }
     (directory / "manifest.json").write_text(json.dumps(manifest))
@@ -100,14 +128,14 @@ def read(client):
 def test_daily_commit_is_final_encrypted_conditional_put(run_dir):
     client = MemoryS3()
     result = publish(run_dir, client)
-    assert len(client.puts) == 5
+    assert len(client.puts) == 7
     assert client.puts[-2]["Key"].endswith("/manifest.json")
     assert client.puts[-1]["Key"] == COMMIT_KEY
     assert result["reused"] is False
     assert result["commit_uri"] == f"s3://{BUCKET}/{COMMIT_KEY}"
     assert result["source_sha256"] == SOURCE_HASH
     assert result["table_counts"] == {"observations.parquet": 3, "options.parquet": 3}
-    assert set(result["locations"]) == {"observations.parquet", "options.parquet", "quality_report.json", "manifest.json"}
+    assert set(result["locations"]) == {"observations.parquet", "options.parquet", "observations.csv", "options.csv", "quality_report.json", "manifest.json"}
     for call in client.puts:
         assert call["ServerSideEncryption"] == "AES256"
         assert call["IfNoneMatch"] == "*"
@@ -128,8 +156,156 @@ def test_remote_commit_survives_local_state_loss(run_dir, tmp_path):
     third = publish(make_run(tmp_path), client)
     assert third["run_id"] == run_dir.name
     assert third["reused"] is True
-    assert len(client.puts) == 5
+    assert len(client.puts) == 7
     assert client.objects == original
+
+
+def rewrite_committed_manifest(client, result, mutate):
+    """Change metadata consistently so tests exercise semantics, not hash drift."""
+    key = result["manifest_uri"].removeprefix(f"s3://{BUCKET}/")
+    manifest = json.loads(client.objects[key])
+    commit = json.loads(client.objects[COMMIT_KEY])
+    mutate(manifest, commit)
+    client.objects[key] = json.dumps(manifest).encode()
+    commit["manifest_sha256"] = hashlib.sha256(client.objects[key]).hexdigest()
+    client.objects[COMMIT_KEY] = json.dumps(commit).encode()
+
+
+def test_legacy_three_artifact_commit_is_readable_and_reused(run_dir, tmp_path):
+    client = MemoryS3()
+    result = publish(run_dir, client)
+
+    def legacy_layout(manifest, commit):
+        for name in ("observations.csv", "options.csv"):
+            del manifest["artifacts"][name]
+            del commit["artifacts"][name]
+            key = commit["locations"].pop(name).removeprefix(f"s3://{BUCKET}/")
+            del client.objects[key]
+
+    rewrite_committed_manifest(client, result, legacy_layout)
+    before = dict(client.objects)
+    legacy = read(client)
+    assert set(legacy["artifacts"]) == {"observations.parquet", "options.parquet", "quality_report.json"}
+    assert legacy["reused"] is True
+    assert publish(make_run(tmp_path), client)["run_id"] == run_dir.name
+    assert client.objects == before
+    assert len(client.puts) == 7
+
+
+@pytest.mark.parametrize("name", ["observations.parquet", "options.parquet", "observations.csv", "options.csv", "quality_report.json"])
+@pytest.mark.parametrize("corruption", ["missing", "modified"])
+def test_missing_or_corrupt_remote_artifact_is_not_reused(run_dir, name, corruption):
+    client = MemoryS3()
+    result = publish(run_dir, client)
+    key = result["locations"][name].removeprefix(f"s3://{BUCKET}/")
+    if corruption == "missing":
+        del client.objects[key]
+        expected_error, pattern = ClientError, "NoSuchKey"
+    else:
+        client.objects[key] += b"changed"
+        expected_error, pattern = ValueError, "artifact checksum"
+    with pytest.raises(expected_error, match=pattern):
+        read(client)
+    with pytest.raises(expected_error, match=pattern):
+        publish(run_dir, client)
+    assert len(client.puts) == 7
+
+
+@pytest.mark.parametrize("layout", ["one_csv", "unexpected_artifact", "extra_location"])
+def test_only_exact_legacy_or_current_layout_can_be_reused(run_dir, layout):
+    client = MemoryS3()
+    result = publish(run_dir, client)
+
+    def malformed_layout(manifest, commit):
+        if layout == "one_csv":
+            del manifest["artifacts"]["options.csv"]
+            del commit["artifacts"]["options.csv"]
+            del commit["locations"]["options.csv"]
+        elif layout == "unexpected_artifact":
+            record = {"sha256": "d" * 64}
+            manifest["artifacts"]["unexpected.csv"] = record
+            commit["artifacts"]["unexpected.csv"] = record
+        else:
+            commit["locations"]["unexpected.csv"] = f"s3://{BUCKET}/unexpected.csv"
+
+    rewrite_committed_manifest(client, result, malformed_layout)
+    with pytest.raises(ValueError, match="artifact set|object locations"):
+        read(client)
+
+
+def test_wrong_csv_size_metadata_is_not_reused(run_dir):
+    client = MemoryS3()
+    result = publish(run_dir, client)
+
+    def wrong_size(manifest, commit):
+        manifest["artifacts"]["observations.csv"]["size_bytes"] += 1
+        commit["artifacts"]["observations.csv"]["size_bytes"] += 1
+
+    rewrite_committed_manifest(client, result, wrong_size)
+    with pytest.raises(ValueError, match="artifact size"):
+        read(client)
+
+
+def test_reuse_prefers_full_object_s3_checksum_without_downloading_artifacts(run_dir):
+    client = HeadChecksumS3()
+    result = publish(run_dir, client)
+    client.gets.clear()
+    reused = read(client)
+    assert reused["reused"] is True
+    assert len(client.heads) == 5
+    assert {call["Key"] for call in client.gets} == {
+        COMMIT_KEY, result["manifest_uri"].removeprefix(f"s3://{BUCKET}/"),
+    }
+    assert {call["Key"] for call in client.heads} == {
+        uri.removeprefix(f"s3://{BUCKET}/") for name, uri in result["locations"].items()
+        if name != "manifest.json"
+    }
+
+
+@pytest.mark.parametrize("unsupported", ["missing_checksum", "composite_checksum", "unsupported_api"])
+def test_reuse_falls_back_to_streaming_when_full_object_checksum_unavailable(run_dir, unsupported):
+    client = HeadChecksumS3()
+    publish(run_dir, client)
+    client.gets.clear()
+    if unsupported == "missing_checksum":
+        client.checksum_available = False
+    elif unsupported == "composite_checksum":
+        client.checksum_type = "COMPOSITE"
+    else:
+        client.head_error = aws_error("NotImplemented", 501)
+    assert read(client)["reused"] is True
+    assert len(client.heads) == 5
+    assert len(client.gets) == 7  # Commit, manifest, and five streamed artifacts.
+
+
+@pytest.mark.parametrize("corruption", ["same_size_modified", "wrong_size", "missing"])
+def test_head_checksum_rejects_changed_or_missing_artifacts(run_dir, corruption):
+    client = HeadChecksumS3()
+    result = publish(run_dir, client)
+    key = result["locations"]["observations.csv"].removeprefix(f"s3://{BUCKET}/")
+    if corruption == "same_size_modified":
+        client.objects[key] = client.objects[key][:-1] + b"!"
+        error, pattern = ValueError, "artifact checksum"
+    elif corruption == "wrong_size":
+        client.objects[key] += b"!"
+        error, pattern = ValueError, "artifact size"
+    else:
+        del client.objects[key]
+        error, pattern = ClientError, "NoSuchKey"
+    client.gets.clear()
+    with pytest.raises(error, match=pattern):
+        read(client)
+    assert len(client.gets) == 2
+
+
+def test_head_permission_failure_is_not_silently_downgraded_to_streaming(run_dir):
+    client = HeadChecksumS3()
+    publish(run_dir, client)
+    client.gets.clear()
+    client.head_error = aws_error("AccessDenied", 403)
+    with pytest.raises(ClientError, match="AccessDenied"):
+        read(client)
+    assert len(client.gets) == 2
 
 
 @pytest.mark.parametrize("code", ["NoSuchKey", "404"])
@@ -149,7 +325,7 @@ def test_permissions_bucket_and_transient_errors_are_not_absence(run_dir, code, 
     assert client.puts == []
 
 
-@pytest.mark.parametrize("failed_put", [1, 2, 3, 4, 5])
+@pytest.mark.parametrize("failed_put", [1, 2, 3, 4, 5, 6, 7])
 def test_failed_artifact_manifest_or_commit_never_marks_complete(run_dir, failed_put):
     client = MemoryS3()
     client.fail_put_at = failed_put
@@ -161,7 +337,7 @@ def test_failed_artifact_manifest_or_commit_never_marks_complete(run_dir, failed
 
 def test_retry_after_incomplete_run_uses_new_uuid(run_dir, tmp_path):
     client = MemoryS3()
-    client.fail_put_at = 5
+    client.fail_put_at = 7
     with pytest.raises(ClientError):
         publish(run_dir, client)
     client.fail_put_at = None
@@ -180,7 +356,7 @@ def test_concurrent_commit_returns_verified_winner(run_dir, tmp_path):
     assert result["reused"] is True
     assert result["run_id"] == concurrent_run.name
     assert read(client)["run_id"] == concurrent_run.name
-    assert len(client.objects) == 9  # Two immutable runs, one winning daily commit.
+    assert len(client.objects) == 13  # Two immutable runs, one winning daily commit.
 
 
 def test_collision_without_committed_winner_is_not_success(run_dir):
@@ -201,7 +377,7 @@ def test_missing_remote_manifest_is_not_missing_commit(run_dir):
     del client.objects[result["manifest_uri"].removeprefix(f"s3://{BUCKET}/")]
     with pytest.raises(ClientError):
         read(client)
-    assert len(client.puts) == 5
+    assert len(client.puts) == 7
 
 
 def test_modified_manifest_fails_checksum(run_dir):
@@ -227,7 +403,7 @@ def test_invalid_commit_is_never_reused(run_dir, field, value):
     client.objects[COMMIT_KEY] = json.dumps(commit).encode()
     with pytest.raises(ValueError):
         read(client)
-    assert len(client.puts) == 5
+    assert len(client.puts) == 7
 
 
 @pytest.mark.parametrize("field,value", [
@@ -287,7 +463,7 @@ def test_same_revision_different_source_is_rejected(run_dir, tmp_path):
     path.write_text(json.dumps(manifest))
     with pytest.raises(ValueError, match="different source"):
         publish(second, client)
-    assert len(client.puts) == 5
+    assert len(client.puts) == 7
 
 
 def test_manifest_table_counts_can_be_absent(run_dir):

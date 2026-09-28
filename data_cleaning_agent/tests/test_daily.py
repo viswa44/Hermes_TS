@@ -342,3 +342,124 @@ def test_unfinished_or_weekend_manual_day_fails_before_database(settings, reques
     with pytest.raises(ValueError, match='completed weekday'):
         daily.run_daily(settings, requested_date=requested, now=AFTER_CLOSE,
                         connection_factory=forbidden)
+
+
+@pytest.mark.parametrize('requested_date', [None, DAY])
+def test_explicit_rebuild_completed_runs_on_weekend_with_real_clock(settings, harness, monkeypatch, requested_date):
+    now = datetime.fromisoformat('2026-09-12T10:00:00+05:30')
+    calendar_calls = []
+
+    def calendar(day, **kwargs):
+        calendar_calls.append((day, kwargs['now']))
+        return {'allowed': day == DAY, 'status': 'OPEN' if day == DAY else 'CLOSED'}
+
+    monkeypatch.setattr(daily, 'decide_session', calendar)
+    result = daily.run_daily(
+        settings, rebuild_completed=True, requested_date=requested_date, now=now,
+        connection_factory=harness.connection_factory, client=harness.client,
+    )
+    assert result['status'] == 'COMPLETE'
+    assert result['rebuild_completed'] is True
+    assert result['completed_through'] == DAY.isoformat()
+    assert result['checked_at'] == now.isoformat()
+    assert result['days'][0]['checked_at'] == now.isoformat()
+    assert result['days'][0]['status'] == 'PUBLISHED'
+    assert calendar_calls == [(DAY, now)]
+    assert harness.exports == harness.cleanings == harness.uploads == 1
+    manifest = json.loads((Path(result['days'][0]['run_dir']) / 'manifest.json').read_text())
+    assert manifest['source_context']['source_read_only'] is True
+    assert manifest['source_context']['source_isolation'] == 'REPEATABLE READ'
+
+
+def test_rebuild_completed_does_not_change_immutable_revision_or_republish(settings, harness):
+    original = run(settings, harness)
+    rebuilt = daily.run_daily(
+        settings, rebuild_completed=True, now=datetime.fromisoformat('2026-09-12T10:00:00+05:30'),
+        connection_factory=harness.connection_factory, client=harness.client,
+    )
+    assert rebuilt['days'][0]['revision'] == original['days'][0]['revision']
+    assert rebuilt['days'][0]['reused'] is True
+    assert harness.exports == 2
+    assert harness.cleanings == harness.uploads == 1
+
+
+@pytest.mark.parametrize(('now', 'requested'), [
+    ('2026-09-11T15:44:59+05:30', DAY),
+    ('2026-09-12T10:00:00+05:30', date(2026, 9, 12)),
+    ('2026-09-12T10:00:00+05:30', date(2026, 9, 14)),
+])
+def test_rebuild_completed_rejects_unfinished_current_or_future_day(settings, monkeypatch, now, requested):
+    monkeypatch.setattr(daily, '_mistral_settings', forbidden)
+    with pytest.raises(ValueError, match='completed weekday'):
+        daily.run_daily(
+            settings, rebuild_completed=True, requested_date=requested,
+            now=datetime.fromisoformat(now), connection_factory=forbidden,
+        )
+
+
+def test_rebuild_completed_accepts_today_after_completed_cutoff(settings, harness):
+    result = run(settings, harness, rebuild_completed=True, requested_date=DAY)
+    assert result['days'][0]['status'] == 'PUBLISHED'
+    assert result['completed_through'] == DAY.isoformat()
+
+
+@pytest.mark.parametrize(('calendar_status', 'expected_status', 'summary_status'), [
+    ('CLOSED', 'SKIPPED_MARKET_HOLIDAY', 'COMPLETE'),
+    ('UNKNOWN', 'CALENDAR_UNAVAILABLE', 'ATTENTION_REQUIRED'),
+])
+def test_rebuild_completed_retains_source_calendar_gate(settings, harness, monkeypatch, calendar_status, expected_status, summary_status):
+    now = datetime.fromisoformat('2026-09-12T10:00:00+05:30')
+    calendar_calls = []
+
+    def calendar(day, **kwargs):
+        calendar_calls.append((day, kwargs['now']))
+        return {'allowed': False, 'status': calendar_status}
+
+    monkeypatch.setattr(daily, 'decide_session', calendar)
+    result = daily.run_daily(
+        settings, rebuild_completed=True, requested_date=DAY, now=now,
+        connection_factory=harness.connection_factory, client=harness.client,
+    )
+    assert result['status'] == summary_status
+    assert result['days'][0]['status'] == expected_status
+    assert calendar_calls == [(DAY, now)]
+    assert harness.exports == harness.cleanings == harness.reads == harness.uploads == 0
+
+
+def test_rebuild_completed_forbids_scheduled_mode_before_side_effects(settings, monkeypatch):
+    monkeypatch.setattr(daily, 'decide_session', forbidden)
+    with pytest.raises(ValueError, match='scheduled mode'):
+        daily.run_daily(settings, scheduled=True, rebuild_completed=True,
+                        now=AFTER_CLOSE, connection_factory=forbidden)
+    assert not settings.daily_runtime_dir.exists()
+
+
+def test_rebuild_completed_respects_single_job_lock(settings, harness):
+    with daily.single_job(settings.daily_runtime_dir):
+        with pytest.raises(RuntimeError, match='owns the lock'):
+            run(settings, harness, rebuild_completed=True)
+    assert harness.connections == harness.exports == harness.uploads == 0
+
+
+def test_cli_passes_rebuild_completed_explicitly(settings, monkeypatch, capsys):
+    calls = []
+    monkeypatch.setattr(daily, 'Settings', lambda: settings)
+
+    def runner(configuration, **kwargs):
+        calls.append((configuration, kwargs))
+        return {'status': 'COMPLETE', 'days': []}
+
+    monkeypatch.setattr(daily, 'run_daily', runner)
+    assert daily.main(['--rebuild-completed', '--date', DAY.isoformat(), '--local-only']) == 0
+    assert calls == [(settings, {
+        'scheduled': False, 'requested_date': DAY, 'rebuild_completed': True,
+        'local_only': True, 'planner': None,
+    })]
+    assert json.loads(capsys.readouterr().out)['status'] == 'COMPLETE'
+
+
+def test_cli_rebuild_completed_and_scheduled_are_mutually_exclusive(monkeypatch):
+    monkeypatch.setattr(daily, 'run_daily', forbidden)
+    with pytest.raises(SystemExit) as error:
+        daily.main(['--rebuild-completed', '--scheduled'])
+    assert error.value.code == 2

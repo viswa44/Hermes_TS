@@ -18,13 +18,17 @@ from uuid import UUID
 
 from botocore.exceptions import ClientError
 
-from .s3_tool import _ARTIFACTS, _validated_prefix, publish_run, validate_bucket_name
+from .s3_tool import (
+    _ARTIFACTS, _LEGACY_ARTIFACTS, _validated_prefix,
+    publish_run, validate_bucket_name,
+)
 
 
 _HASH = re.compile(r"[0-9a-f]{64}")
 _MAX_JSON_BYTES = 2 * 1024 * 1024
 _MISSING = {"NoSuchKey", "404"}
 _COLLISION = {"PreconditionFailed", "412", "ConditionalRequestConflict", "409"}
+_HEAD_CHECKSUM_UNSUPPORTED = {"NotImplemented", "InvalidRequest", "InvalidArgument", "UnsupportedOperation"}
 
 
 def _client(region: str | None = None) -> Any:
@@ -102,6 +106,7 @@ def _table_counts(manifest: dict[str, Any]) -> dict[str, int]:
 
 def _validate_manifest(
     manifest: dict[str, Any], trading_date: date, revision: str, run_id: str, source_sha256: str,
+    *, artifact_names: tuple[str, ...] = _ARTIFACTS,
 ) -> None:
     context = manifest.get("source_context")
     if (
@@ -116,7 +121,7 @@ def _validate_manifest(
     artifacts = manifest.get("artifacts")
     if not isinstance(artifacts, dict):
         raise ValueError("Publication manifest must include artifact metadata.")
-    for name in _ARTIFACTS:
+    for name in artifact_names:
         record = artifacts.get(name)
         if not isinstance(record, dict):
             raise ValueError("Publication manifest is missing artifact metadata.")
@@ -124,6 +129,57 @@ def _validate_manifest(
         if "size_bytes" in record and (type(record["size_bytes"]) is not int or record["size_bytes"] < 0):
             raise ValueError("Invalid artifact size metadata.")
     _table_counts(manifest)
+
+
+def _committed_artifacts(commit: dict[str, Any]) -> tuple[str, ...]:
+    """Allow complete old/new publication layouts, never partial CSV additions."""
+    records = commit.get("artifacts")
+    if isinstance(records, dict):
+        for names in (_ARTIFACTS, _LEGACY_ARTIFACTS):
+            if set(records) == set(names):
+                return names
+    raise ValueError("Daily commit must contain exactly the legacy or current artifact set.")
+
+
+def _verify_artifact(client: Any, bucket: str, key: str, record: dict[str, Any]) -> None:
+    """Verify the S3 full-object checksum, falling back to hashing fetched bytes."""
+    filename = key.rsplit('/', 1)[-1]
+    head_object = getattr(client, "head_object", None)
+    if head_object is not None:
+        try:
+            response = head_object(Bucket=bucket, Key=key, ChecksumMode="ENABLED")
+        except ClientError as exc:
+            if str(exc.response.get("Error", {}).get("Code")) not in _HEAD_CHECKSUM_UNSUPPORTED:
+                raise
+        else:
+            size = response.get("ContentLength")
+            if size is not None:
+                if type(size) is not int or size < 0:
+                    raise ValueError(f"Invalid S3 artifact size metadata: {filename}")
+                if "size_bytes" in record and record["size_bytes"] != size:
+                    raise ValueError(f"Daily artifact size does not match its manifest: {filename}")
+            checksum = response.get("ChecksumSHA256")
+            # Composite multipart checksums cannot be compared with a SHA-256
+            # of the complete file. A missing checksum likewise needs a GET.
+            if checksum and response.get("ChecksumType") in (None, "FULL_OBJECT"):
+                expected = base64.b64encode(bytes.fromhex(record["sha256"])).decode("ascii")
+                if checksum != expected:
+                    raise ValueError(f"Daily artifact checksum does not match its manifest: {filename}")
+                if size is not None:
+                    return
+    body = client.get_object(Bucket=bucket, Key=key)["Body"]
+    digest = hashlib.sha256()
+    size = 0
+    try:
+        while chunk := body.read(1024 * 1024):
+            digest.update(chunk)
+            size += len(chunk)
+    finally:
+        body.close()
+    if digest.hexdigest() != record["sha256"]:
+        raise ValueError(f"Daily artifact checksum does not match its manifest: {filename}")
+    if "size_bytes" in record and record["size_bytes"] != size:
+        raise ValueError(f"Daily artifact size does not match its manifest: {filename}")
 
 
 def read_daily_commit(
@@ -134,8 +190,11 @@ def read_daily_commit(
 
     Permissions, missing buckets, malformed commits, missing manifests and AWS
     service failures propagate. They never mean that a revision is absent.
-    Artifact checksums are validated as metadata here; readers still verify
-    downloaded Parquet bytes against that metadata before consuming tables.
+    Legacy three-artifact commits remain readable. Current commits must also
+    contain both CSV companions. Every current artifact is checked against its
+    S3 full-object checksum and size, or streamed and hashed if S3 does not expose
+    that checksum. Legacy artifact checksums are validated as metadata only;
+    consumers still verify their downloaded bytes against the manifest.
     """
     bucket, prefix, commit_key = _identity(bucket, base_prefix, trading_date, revision)
     if client is None:
@@ -156,20 +215,24 @@ def read_daily_commit(
     run_id = _run_id(commit.get("run_id"))
     source_hash = _hash(commit.get("source_sha256"), "source")
     manifest_hash = _hash(commit.get("manifest_sha256"), "manifest")
+    artifact_names = _committed_artifacts(commit)
     expected_locations = {
         name: f"s3://{bucket}/{prefix}/{run_id}/{name}"
-        for name in (*_ARTIFACTS, "manifest.json")
+        for name in (*artifact_names, "manifest.json")
     }
     if commit.get("locations") != expected_locations or commit.get("manifest_uri") != expected_locations["manifest.json"]:
         raise ValueError("Daily commit contains invalid object locations.")
     manifest, payload = _get_json(client, bucket, f"{prefix}/{run_id}/manifest.json")
     if hashlib.sha256(payload).hexdigest() != manifest_hash:
         raise ValueError("Daily commit manifest checksum does not match.")
-    _validate_manifest(manifest, trading_date, revision, run_id, source_hash)
-    if set(manifest["artifacts"]) != set(_ARTIFACTS) or commit.get("artifacts") != manifest["artifacts"]:
+    _validate_manifest(manifest, trading_date, revision, run_id, source_hash, artifact_names=artifact_names)
+    if set(manifest["artifacts"]) != set(artifact_names) or commit.get("artifacts") != manifest["artifacts"]:
         raise ValueError("Daily commit artifact metadata does not match its manifest.")
     if "table_counts" not in commit or _table_counts(commit) != _table_counts(manifest):
         raise ValueError("Daily commit table counts do not match its manifest.")
+    if artifact_names == _ARTIFACTS:
+        for name in artifact_names:
+            _verify_artifact(client, bucket, f"{prefix}/{run_id}/{name}", manifest["artifacts"][name])
     return {
         **commit,
         "commit_uri": f"s3://{bucket}/{commit_key}",

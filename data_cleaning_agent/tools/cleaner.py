@@ -20,6 +20,8 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from .enrichment import OBSERVATION_EXTRAS, OPTION_EXTRAS
+
 if TYPE_CHECKING:
     from ..config.settings import Settings
     from ..models.cleaning_plan import CleaningPlan
@@ -32,6 +34,7 @@ OBSERVATION_DTYPES = {
     "iv": "Float64", "volume": "Int64", "timestamp_source": "string",
     "source_receipt_id": "string", "source_freshness": "string", "source_version": "string",
     "provider_timestamp": "datetime64[ns, UTC]", "data_status": "string",
+    **OBSERVATION_EXTRAS,
 }
 OPTION_DTYPES = {
     "observation_id": "string", "timestamps": "datetime64[ns, UTC]",
@@ -41,6 +44,7 @@ OPTION_DTYPES = {
     "daystoexpiry": "Float64", "delta": "Float64", "theta": "Float64",
     "gamma": "Float64", "vega": "Float64", "greeks_source": "string",
     "derivation_status": "string",
+    **OPTION_EXTRAS,
 }
 QUARANTINE_DTYPES = {
     "source_row": "Int64", "reason": "string", "raw_record_json": "string",

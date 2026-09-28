@@ -16,7 +16,9 @@ from typing import Any
 from uuid import UUID
 
 
-_ARTIFACTS = ("observations.parquet", "options.parquet", "quality_report.json")
+_LEGACY_ARTIFACTS = ("observations.parquet", "options.parquet", "quality_report.json")
+_CSV_ARTIFACTS = ("observations.csv", "options.csv")
+_ARTIFACTS = (*_LEGACY_ARTIFACTS[:2], *_CSV_ARTIFACTS, "quality_report.json")
 _RESERVED_PREFIXES = ("xn--", "sthree-", "amzn-s3-demo-")
 _RESERVED_SUFFIXES = ("-s3alias", "--ol-s3", ".mrap", "--x-s3", "--table-s3")
 
@@ -81,10 +83,11 @@ def publish_run(
     """Publish one PASS run; return filename-to-``s3://`` locations.
 
     ``manifest.json`` must contain ``status: "PASS"`` and ``artifacts`` mapping
-    each of the two Parquet files and the quality report to ``{"sha256": hex}``.
+    each of the two Parquet files, two CSV companions and the quality report to
+    ``{"sha256": hex}``.
     The report's ``passed`` must be the JSON boolean ``true``. Every required
     artifact and checksum is checked before constructing an AWS client. The
-    remote manifest lists only the three published artifacts under ``artifacts``;
+    remote manifest lists only the five published artifacts under ``artifacts``;
     other local checksums move to ``local_evidence.artifacts`` with an explicit
     ``local_only`` scope. The original local manifest remains unchanged.
 
@@ -157,7 +160,11 @@ def publish_run(
             Key=key,
             Body=payload,
             ContentLength=len(payload),
-            ContentType=("application/json" if filename.endswith(".json") else "application/vnd.apache.parquet"),
+            ContentType=(
+                "application/json" if filename.endswith(".json") else
+                "text/csv; charset=utf-8" if filename.endswith(".csv") else
+                "application/vnd.apache.parquet"
+            ),
             ServerSideEncryption="AES256",
             ChecksumSHA256=base64.b64encode(hashlib.sha256(payload).digest()).decode("ascii"),
             IfNoneMatch="*",

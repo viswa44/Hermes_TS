@@ -38,6 +38,8 @@ def run_dir(tmp_path: Path) -> Path:
     directory.mkdir()
     (directory / "observations.parquet").write_bytes(b"example observation artifact")
     (directory / "options.parquet").write_bytes(b"example option artifact")
+    (directory / "observations.csv").write_text("observation_id,timestamps\nexample,2026-09-18T03:45:05.902530Z\n")
+    (directory / "options.csv").write_text("observation_id,expirydate\nexample,2026-09-22T10:00:00Z\n")
     (directory / "quality_report.json").write_text(json.dumps({"passed": True}))
     (directory / "quarantine.jsonl").write_text('{"raw": "private rejected row"}\n')
     manifest = {
@@ -45,7 +47,7 @@ def run_dir(tmp_path: Path) -> Path:
         "status": "PASS",
         "artifacts": {
             name: {"sha256": hashlib.sha256((directory / name).read_bytes()).hexdigest()}
-            for name in ("observations.parquet", "options.parquet", "quality_report.json")
+            for name in ("observations.parquet", "options.parquet", "observations.csv", "options.csv", "quality_report.json")
         },
     }
     (directory / "manifest.json").write_text(json.dumps(manifest))
@@ -57,7 +59,7 @@ def test_publish_is_conditional_encrypted_and_manifest_last(run_dir):
     locations = publish_run(run_dir, "heremesv0-cleaned-data", client=client)
 
     assert list(locations) == [
-        "observations.parquet", "options.parquet", "quality_report.json", "manifest.json"
+        "observations.parquet", "options.parquet", "observations.csv", "options.csv", "quality_report.json", "manifest.json"
     ]
     assert client.calls[-1]["Key"].endswith("/manifest.json")
     assert all("quarantine" not in call["Key"] for call in client.calls)
@@ -69,6 +71,8 @@ def test_publish_is_conditional_encrypted_and_manifest_last(run_dir):
         assert call["ChecksumSHA256"] == base64.b64encode(
             hashlib.sha256(call["Body"]).digest()
         ).decode("ascii")
+        if call["Key"].endswith(".csv"):
+            assert call["ContentType"] == "text/csv; charset=utf-8"
     assert locations["manifest.json"] == (
         f"s3://heremesv0-cleaned-data/cleaned/{run_dir.name}/manifest.json"
     )
@@ -81,7 +85,7 @@ def test_existing_objects_are_never_overwritten(run_dir):
     with pytest.raises(RuntimeError, match="PreconditionFailed"):
         publish_run(run_dir, "heremesv0-cleaned-data", client=client)
     assert client.objects == before
-    assert len(client.calls) == 5
+    assert len(client.calls) == 7
 
 
 def test_remote_manifest_scopes_local_evidence_without_uploading_it(run_dir):
@@ -104,10 +108,10 @@ def test_remote_manifest_scopes_local_evidence_without_uploading_it(run_dir):
 
     publish_run(run_dir, "heremesv0-cleaned-data", client=client)
 
-    assert len(client.calls) == 4
+    assert len(client.calls) == 6
     remote_manifest = json.loads(client.calls[-1]["Body"])
     assert set(remote_manifest["artifacts"]) == {
-        "observations.parquet", "options.parquet", "quality_report.json"
+        "observations.parquet", "options.parquet", "observations.csv", "options.csv", "quality_report.json"
     }
     assert remote_manifest["local_evidence"] == {
         "scope": "local_only",
@@ -121,7 +125,7 @@ def test_remote_manifest_scopes_local_evidence_without_uploading_it(run_dir):
     assert all(call["Key"].split("/")[-1] not in local_names for call in client.calls)
 
 
-@pytest.mark.parametrize("failed_put", [1, 2, 3])
+@pytest.mark.parametrize("failed_put", [1, 2, 3, 4, 5])
 def test_partial_failure_does_not_upload_manifest(run_dir, failed_put):
     client = FakeS3(fail_at=failed_put)
     with pytest.raises(RuntimeError, match="simulated upload failure"):
@@ -152,7 +156,7 @@ def test_manifest_failure_stops_before_aws(run_dir, status):
     assert client.calls == []
 
 
-@pytest.mark.parametrize("filename", ["observations.parquet", "options.parquet", "quality_report.json", "manifest.json"])
+@pytest.mark.parametrize("filename", ["observations.parquet", "options.parquet", "observations.csv", "options.csv", "quality_report.json", "manifest.json"])
 def test_all_required_files_checked_before_any_upload(run_dir, filename):
     (run_dir / filename).unlink()
     client = FakeS3()
@@ -161,8 +165,9 @@ def test_all_required_files_checked_before_any_upload(run_dir, filename):
     assert client.calls == []
 
 
-def test_tampered_artifact_is_not_uploaded(run_dir):
-    (run_dir / "options.parquet").write_bytes(b"modified after quality check")
+@pytest.mark.parametrize("filename", ["options.parquet", "observations.csv", "options.csv"])
+def test_tampered_artifact_is_not_uploaded(run_dir, filename):
+    (run_dir / filename).write_bytes(b"modified after quality check")
     client = FakeS3()
     with pytest.raises(ValueError, match="checksum"):
         publish_run(run_dir, "heremesv0-cleaned-data", client=client)

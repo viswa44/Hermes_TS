@@ -123,8 +123,11 @@ def _s3_client(settings: Settings):
 
 
 def run_daily(settings: Settings, *, scheduled: bool = False, requested_date: date | None = None,
+              rebuild_completed: bool = False,
               local_only: bool = False, planner: str | None = None, now: datetime | None = None,
               connection_factory=connect_database, client=None) -> dict:
+    if scheduled and rebuild_completed:
+        raise ValueError('Historical rebuild cannot run in scheduled mode')
     now = now or datetime.now(timezone.utc)
     if now.tzinfo is None:
         raise ValueError('Scheduler requires timezone-aware time')
@@ -134,17 +137,18 @@ def run_daily(settings: Settings, *, scheduled: bool = False, requested_date: da
         summary = {'status': 'SKIPPED_WEEKEND', 'checked_at': now.isoformat(), 'days': []}
         _atomic_json(runtime / 'last_status.json', summary)
         return summary
-    market = decide_session(local.date(), now=now)
-    record_gate('cleaner', dict(market, component='cleaner', checked_at=now.isoformat()))
-    if market.get('allowed') is not True:
-        summary = {'status': 'CALENDAR_UNAVAILABLE' if market['status'] == 'UNKNOWN' else 'SKIPPED_MARKET_HOLIDAY',
-                   'checked_at': now.isoformat(), 'gateway': market, 'days': []}
-        _atomic_json(runtime / 'last_status.json', summary)
-        return summary
-    if scheduled and local.time() < time.fromisoformat(settings.daily_ready_time):
-        summary = {'status': 'WAITING_FOR_CLEANING', 'checked_at': now.isoformat(), 'gateway': market, 'days': []}
-        _atomic_json(runtime / 'last_status.json', summary)
-        return summary
+    if not rebuild_completed:
+        market = decide_session(local.date(), now=now)
+        record_gate('cleaner', dict(market, component='cleaner', checked_at=now.isoformat()))
+        if market.get('allowed') is not True:
+            summary = {'status': 'CALENDAR_UNAVAILABLE' if market['status'] == 'UNKNOWN' else 'SKIPPED_MARKET_HOLIDAY',
+                       'checked_at': now.isoformat(), 'gateway': market, 'days': []}
+            _atomic_json(runtime / 'last_status.json', summary)
+            return summary
+        if scheduled and local.time() < time.fromisoformat(settings.daily_ready_time):
+            summary = {'status': 'WAITING_FOR_CLEANING', 'checked_at': now.isoformat(), 'gateway': market, 'days': []}
+            _atomic_json(runtime / 'last_status.json', summary)
+            return summary
     cutoff = latest_completed_day(now, settings.daily_ready_time)
     if requested_date and (requested_date > cutoff or requested_date.weekday() >= 5):
         raise ValueError('Requested day must be a completed weekday session')
@@ -235,6 +239,7 @@ def run_daily(settings: Settings, *, scheduled: bool = False, requested_date: da
             'status': 'ATTENTION_REQUIRED' if failed else ('COMPLETE' if entries else 'NO_DATA'),
             'checked_at': now.isoformat(), 'completed_through': cutoff.isoformat(),
             'planner': planner, 'local_only': local_only, 'days': entries,
+            'rebuild_completed': rebuild_completed,
         }
         _atomic_json(runtime / 'last_status.json', summary)
         return summary
@@ -242,7 +247,10 @@ def run_daily(settings: Settings, *, scheduled: bool = False, requested_date: da
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description='PostgreSQL weekday cleaning and S3 publication')
-    parser.add_argument('--scheduled', action='store_true', help='Weekday guard and completed-session catch-up')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--scheduled', action='store_true', help='Weekday guard and completed-session catch-up')
+    mode.add_argument('--rebuild-completed', action='store_true',
+                      help='Rebuild historical completed sessions on any execution day; source calendars still apply')
     parser.add_argument('--date', type=date.fromisoformat, help='Manually process one completed weekday, YYYY-MM-DD')
     parser.add_argument('--local-only', action='store_true', help='Read PostgreSQL and clean without any AWS calls')
     parser.add_argument('--planner', choices=['deterministic', 'mistral'])
@@ -255,6 +263,7 @@ def main(argv=None) -> int:
             print(path.read_text() if path.exists() else json.dumps({'status': 'NOT_RUN'}))
             return 0
         result = run_daily(settings, scheduled=args.scheduled, requested_date=args.date,
+                           rebuild_completed=args.rebuild_completed,
                            local_only=args.local_only, planner=args.planner)
         print(json.dumps(result, indent=2, sort_keys=True))
         return 2 if result['status'] in {'ATTENTION_REQUIRED', 'CALENDAR_UNAVAILABLE'} else 0

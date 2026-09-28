@@ -1,9 +1,10 @@
 """Daily source contracts: read-only SQL, linkage, provenance and precision."""
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 import hashlib
 import json
+import os
 from types import SimpleNamespace
 
 import pandas as pd
@@ -13,7 +14,7 @@ from data_cleaning_agent.agent.cleaning_agent import load_data
 from data_cleaning_agent.config.settings import Settings
 from data_cleaning_agent.models.cleaning_plan import CleaningPlan
 from data_cleaning_agent.tools.cleaner import clean_data
-from data_cleaning_agent.tools.postgres_tool import available_trading_dates, export_trading_day, session_bounds
+from data_cleaning_agent.tools.postgres_tool import _EXPORT_SQL, available_trading_dates, export_trading_day, session_bounds
 
 
 DAY = date(2026, 9, 11)
@@ -30,7 +31,10 @@ def source_row(**changes):
         "market_version": 2, "market_data_status": "PARTIAL", "market_evidence": '{"spot":24020}',
         "receipt_match_count": 1, "receipt_id": "receipt-1",
         "timestamp_basis": "APPLICATION_RECEIPT", "freshness": "UNVERIFIED_PROVIDER_TIME",
-        "receipt_evidence": '[{"observation_id":"receipt-1"}]', **changes,
+        "receipt_evidence": '[{"observation_id":"receipt-1"}]',
+        "source_option_json": '{"bid":99,"ask":101,"bid_qty":150,"oi":1000}',
+        "source_market_json": '[{"spot_ltp":24020,"atm_strike":24000}]',
+        "source_greeks_json": '[]', **changes,
     }
 
 
@@ -98,12 +102,110 @@ def test_export_preserves_integers_and_raw_provenance_without_using_derived_fiel
     assert output.row_count == 2
     assert output.path.stat().st_mode & 0o777 == 0o600
     assert connection.calls[-1][1] == (START, END, 100001)
-    assert all("option_greeks_snapshot" not in query for query, _, _ in connection.calls)
+    assert "option_greeks_snapshot" in connection.calls[-1][0]
+    assert output.metadata["schema_version"] == 2
+    assert "public.option_greeks_snapshot" in output.metadata["source_tables"]
     assert all(query.lstrip().startswith("SELECT") for query, _, _ in connection.calls)
     frame = load_data(output.path, Settings(_env_file=None))
     result = clean_data(frame, CleaningPlan(column_mapping={}), Settings(_env_file=None))
     assert result.options.iloc[0].oi == 2**53 + 1
     assert pd.isna(result.options.iloc[1].oi)
+
+
+@pytest.mark.parametrize("version,greeks", [
+    (2, []),
+    (2, [{"implied_volatility": 10.55, "derived_receipts": []}]),
+    (2, [{"implied_volatility": 10.55,
+          "derived_receipts": [{"observation_id": "d1"}, {"observation_id": "d2"}]},
+         {"implied_volatility": 10.70, "derived_receipts": []}]),
+    (1, [{"implied_volatility": 10.55, "derived_receipts": []}]),
+])
+def test_evidence_preserves_missing_ambiguous_and_legacy_calculations_without_changing_raw(tmp_path, version, greeks):
+    evidence = json.dumps(greeks)
+    connection = FakeConnection([source_row(source_version=version, source_greeks_json=evidence)])
+    output = export_trading_day(connection, DAY, tmp_path / "source.jsonl")
+    records = [json.loads(line) for line in output.path.read_text().splitlines()]
+    assert len(records) == output.row_count == 1
+    record = records[0]
+    assert record["source_greeks_json"] == evidence
+    assert json.loads(record["source_option_json"])["bid_qty"] == 150
+    assert json.loads(record["source_market_json"])[0]["atm_strike"] == 24000
+    assert record["iv"] is record["symbol"] is record["exchange"] is None
+    assert record["source_integrity_issues"] is None
+    assert record["spot"] == 24020
+    assert output.metadata["integrity_passed"]
+
+
+@pytest.mark.skipif(not os.environ.get("CLEANER_TEST_POSTGRES_DSN"),
+                    reason="Set CLEANER_TEST_POSTGRES_DSN for read-only PostgreSQL query tests")
+def test_export_sql_aggregates_candidates_and_receipts_without_multiplying_raw_rows():
+    """Execute production SQL over typed in-query fixtures; create no DB objects."""
+    psycopg = pytest.importorskip("psycopg")
+    first, missing, legacy, ambiguous = [START + timedelta(seconds=i * 5) for i in range(4)]
+    calculated = first + timedelta(seconds=1)
+
+    def option(stamp, version=2):
+        return {"timestamp_ist": stamp.isoformat(), "symbol": "NIFTY", "strike": 24000,
+                "option_type": "CE", "expiry_date": "15SEP26", "trading_date": DAY.isoformat(),
+                "ltp": 100, "iv": 0.25, "data_status": "PARTIAL", "version": version}
+
+    def greek(stamp, symbol, version=2, **changes):
+        return {"timestamp_ist": stamp.isoformat(), "underlying_symbol": "NIFTY",
+                "option_symbol": symbol, "strike": 24000, "option_type": "CE",
+                "expiry_date": "15SEP26", "trading_date": DAY.isoformat(), "version": version,
+                "ingestion_time": (stamp + timedelta(seconds=1)).isoformat(),
+                "implied_volatility": 10.55, **changes}
+
+    def receipt(identity, kind, stamp, symbol, parent=None):
+        return {"observation_id": identity, "kind": kind, "received_at": stamp.isoformat(),
+                "symbol": symbol, "parent_observation_id": parent,
+                "timestamp_basis": "APPLICATION_RECEIPT" if kind == "RAW" else "CALCULATION_RECEIPT",
+                "freshness": "UNVERIFIED_PROVIDER_TIME" if kind == "RAW" else "DERIVED_UNVERIFIED_INPUT_TIME"}
+
+    options = [option(first), option(missing), option(legacy, 1), option(ambiguous)]
+    markets = [{"timestamp_ist": o["timestamp_ist"], "symbol": "NIFTY", "spot_ltp": 24020,
+                "trading_date": DAY.isoformat(), "version": o["version"], "data_status": "PARTIAL"}
+               for o in options]
+    greeks = [greek(first, "contract-A"), greek(first, "contract-B"),
+              greek(legacy, "legacy-contract", 1), greek(ambiguous, "ambiguous-contract")]
+    for changes in ({"strike": 24050}, {"option_type": "PE"}, {"expiry_date": "22SEP26"},
+                    {"trading_date": "2026-09-10"}, {"version": 1}, {"underlying_symbol": "BANKNIFTY"}):
+        greeks.append(greek(first, "mismatch", **changes))
+    receipts = [receipt("raw", "RAW", first, "NIFTY"),
+                receipt("a1", "DERIVED", calculated, "contract-A", "raw"),
+                receipt("a2", "DERIVED", calculated, "contract-A", "raw"),
+                receipt("b1", "DERIVED", calculated, "contract-B", "raw"),
+                receipt("wrong-parent", "DERIVED", calculated, "contract-A", "other"),
+                receipt("wrong-symbol", "DERIVED", calculated, "other", "raw"),
+                receipt("wrong-time", "DERIVED", calculated + timedelta(seconds=1), "contract-A", "raw"),
+                receipt("ambiguous-raw-1", "RAW", ambiguous, "NIFTY"),
+                receipt("ambiguous-raw-2", "RAW", ambiguous, "NIFTY"),
+                receipt("ambiguous-derived", "DERIVED", ambiguous + timedelta(seconds=1),
+                        "ambiguous-contract", "ambiguous-raw-2")]
+    fixtures = {"option_snapshot": options, "market_snapshot": markets,
+                "option_greeks_snapshot": greeks, "hermes_ingest_receipt": receipts}
+    query = _EXPORT_SQL
+    for table in fixtures:
+        query = query.replace("public." + table, "fixture_" + table)
+    ctes = [f"fixture_{table} AS (SELECT * FROM jsonb_populate_recordset(NULL::public.{table}, %s::jsonb))"
+            for table in fixtures]
+    with psycopg.connect(os.environ["CLEANER_TEST_POSTGRES_DSN"]) as connection:
+        connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+        assert connection.execute("SHOW transaction_read_only").fetchone()[0] == "on"
+        with connection.cursor(row_factory=psycopg.rows.dict_row) as cursor:
+            cursor.execute("WITH " + ", ".join(ctes) + query,
+                           tuple(json.dumps(rows) for rows in fixtures.values()) + (START, END, 100))
+            rows = cursor.fetchall()
+    assert len(rows) == 4
+    candidates = json.loads(rows[0]["source_greeks_json"])
+    assert [candidate["option_symbol"] for candidate in candidates] == ["contract-A", "contract-B"]
+    assert [[r["observation_id"] for r in candidate["derived_receipts"]] for candidate in candidates] == [["a1", "a2"], ["b1"]]
+    assert rows[1]["source_greeks_json"] == "[]"
+    assert json.loads(rows[2]["source_greeks_json"])[0]["derived_receipts"] == []
+    assert rows[3]["receipt_match_count"] == 2 and rows[3]["receipt_id"] is None
+    assert json.loads(rows[3]["source_greeks_json"])[0]["derived_receipts"] == []
+    assert json.loads(rows[0]["source_option_json"])["iv"] == 0.25
+    assert all("provider_payload" not in m for row in rows for m in json.loads(row["source_market_json"]))
 
 
 @pytest.mark.parametrize("changes,issue", [
